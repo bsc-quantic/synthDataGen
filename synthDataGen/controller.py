@@ -86,7 +86,7 @@ class DataController:
 
 class DataControllerESIOS(DataController):
 
-    from bibliotecaEsios import BajadaDatosESIOS
+    from synthDataGen.common.bibliotecaEsios import BajadaDatosESIOS
 
     def __init__(self, paramsFileName: str, directory: str = os.getcwd()):
         self._paramsFileName = paramsFileName
@@ -199,6 +199,10 @@ class DataControllerESIOS(DataController):
         return df
     
     def _checkDataFrameContiguity(self, df: pd.DataFrame):
+
+
+
+
 
         return None
 
