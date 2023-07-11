@@ -1,0 +1,39 @@
+{
+    "initialYear": 2007,
+    "hoursAhead": 10,
+
+    "dataSource": "ESIOS",
+
+    "ESIOS_params": {
+        "keysFileDir": ".",
+        "keysFileName": "ficheroDeClaves.json",
+
+        "indicadores": [10211],
+        "time_trunc": "hours"
+    },
+    
+    "adjustmentByYear": {
+        "2022": 10,
+        "2021": 10,    
+        "2020": 10,    
+        "2019": 10,    
+        "2018": 10,    
+        "2017": 10,    
+        "2016": 10,
+        "2015": 10,    
+        "2014": 10,
+        "2013": 10,    
+        "2012": 10,    
+        "2011": 10,
+        "2010": 10,
+        "2009": 10,
+        "2008": 10,    
+        "2007": 10    
+    },
+
+    "resampling_params": {
+        "sampleFreqInMins": 15,
+        "method": "polynomial",
+        "splineOrder": 2
+    }
+}
