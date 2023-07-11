@@ -5,7 +5,7 @@
     "dataSource": "ESIOS",
 
     "ESIOS_params": {
-        "keysFileDir": ".",
+        "keysFileDir": "./synthDataGen/settings/",
         "keysFileName": "ficheroDeClaves.json",
 
         "indicadores": [10211],
