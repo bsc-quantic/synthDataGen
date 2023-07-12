@@ -122,7 +122,8 @@ def resampleaDataFrame(df, frecuenciaSampleoMinutos, method='polynomial', order=
     # SampleoDeseado, es un dataframe con indice timeStamp con sampleo deseado
     sampleoDeseado = pd.date_range(primerValor, ultimoValor, freq=sampleoCHAR)
     df = df.reindex(df.index.union(sampleoDeseado))
-    # df =df.interpolate(method=method, order=order)
+    df =df.interpolate(method=method, order=order)
+
     return df
 
 

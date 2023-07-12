@@ -20,7 +20,7 @@ class DataController:
         self._dataSource: str = data["dataSource"]
     
         # Adjustment parameters
-        self._adjustmentByYear: Dict[int, int] = [(int(key), value) for key, value in data["adjustmentByYear"].items()]
+        self._adjustmentByYear: Dict[int, int] = {int(key): value for key, value in data["adjustmentByYear"].items()}
 
         # Resampling parameters
         self._resampling_sampleFreqInMins: int = data["resampling_params"]["sampleFreqInMins"]
@@ -86,7 +86,8 @@ class DataController:
 
 class DataControllerESIOS(DataController):
 
-    from synthDataGen.common.bibliotecaEsios import BajadaDatosESIOS
+    from synthDataGen.common import bibliotecaEsios
+    from synthDataGen.common import bibliotecaGeneral
 
     def __init__(self, paramsFileName: str, directory: str = os.getcwd()):
         self._paramsFileName = paramsFileName
@@ -158,22 +159,23 @@ class DataControllerESIOS(DataController):
         inputParamsFile = os.path.join(self._paramsFileDirectory, self._paramsFileName)
         self._loadParams(inputParamsFile)
 
-    def _getDataForYear(self, initialYear: int, initDatetime: datetime, hoursAhead: int, esios) -> pd.DataFrame:
-        initialDate: datetime = datetime(initialYear, 
+    def _getDataForYear(self, year: int, initDatetime: datetime, hoursAhead: int, esios) -> pd.DataFrame:
+        initialDate: datetime = datetime(year, 
                                          initDatetime.month, initDatetime.day, initDatetime.hour, initDatetime.minute)
-        endDate: datetime + timedelta(hours = hoursAhead)
+        endDate: datetime = initialDate + timedelta(hours = hoursAhead)
         # print("inicio: " + str(inicio) + " - hasta: " + str(hasta))
 
-        df = esios.dataframe_lista_de_indicadores_de_esios_por_fechas(self.indicadores, 
-                                                                  initialDate, endDate, 
-                                                                  time_trunc = self.time_trunc,
-                                                                  inlcuye29DeFebrero = '').filter(["value"], axis = 1)
+        return esios.dataframe_lista_de_indicadores_de_esios_por_fechas(self.indicadores, 
+                                                                        initialDate, endDate,
+                                                                        time_trunc = self.time_trunc,
+                                                                        inlcuye29DeFebrero = '').filter(["value"], axis = 1)
 
-        return df.rename(columns = {"value": str(initialYear)})
+    def _getDataForFirstYear(self, initialYear: int, initDatetime: datetime, hoursAhead: int, esios) -> pd.DataFrame:
+        return self._getDataForYear(initialYear, initDatetime, hoursAhead, esios).rename(columns = {"value": initialYear})
 
     def _getDataForTheRestOfYears(self, df: pd.DataFrame, initialYear: int, initDatetime: datetime, hoursAhead: int, esios) -> pd.DataFrame:
-        for year in range(initialYear + 1, datetime.now()):
-            df[str(year)] = list(self._getDataForYear(esios, initialYear, initDatetime, hoursAhead)["value"])
+        for year in range(initialYear + 1, datetime.now().year):
+            df[year] = list(self._getDataForYear(year, initDatetime, hoursAhead, esios)["value"])
 
         return df
 
@@ -181,46 +183,49 @@ class DataControllerESIOS(DataController):
         """Get the data from source considering the specified parameters. 
         If the parameters are not provided, the ones from the input file are used by default.
 
-        :param int initialYear: first year considered for the request
-        :param datetime initDatetime: the initial (MM-DD-hh-mm) considered for the request
-        :param int hoursAhead: hours from 'initDatetime' on that we want to consider for the request
+        :param int initialYear: first year considered for the request.
+        :param datetime initDatetime: the initial (MM-DD-hh-mm) considered for the request.
+        :param int hoursAhead: hours from 'initDatetime' on that we want to consider for the request.
+        :returns pandas.DataFrame:
         """
         
         if not initialYear: initialYear = self.initialYear
         if not hoursAhead: hoursAhead = self.hoursAhead
 
-        esiosInstance = self.BajadaDatosESIOS(self.__esiosKey)
+        esiosInstance = self.bibliotecaEsios.BajadaDatosESIOS(self.__esiosKey)
 
-        df: pd.DataFrame = self._getDataForYear(initialYear, initDatetime, hoursAhead, esiosInstance)
+        df: pd.DataFrame = self._getDataForFirstYear(initialYear, initDatetime, hoursAhead, esiosInstance)
         df = self._getDataForTheRestOfYears(df, initialYear, initDatetime, hoursAhead, esiosInstance)
 
-        # df.index = df.index + pd.offsets.DateOffset(years = initDatetime.year - self.initialYear)
+        # Shift the index (row names) to the current date
+        df.index = df.index + pd.offsets.DateOffset(years = initDatetime.year - self.initialYear)
 
         return df
     
     def _checkDataFrameContiguity(self, df: pd.DataFrame):
+        years: List = list(df.columns)
+        print(years)
 
-
-
-
-
-        return None
+        if not sorted(years) == list(range(min(years), max(years) + 1)):
+            raise ValueError("Not valid DataFrame. Years (column indices) MUST be continguous.")
 
     def _checkAdjustmentsDict(self, initialYear: int, adjustmentsDict: Dict):
-        years_adjustmentsDict = sorted([year for year in adjustmentsDict.keys()])
-        years_fromInitialYear = sorted([year for year in range(initialYear, datetime.now().year)])
+        years_adjustmentsDict: List = sorted([year for year in adjustmentsDict.keys()])
+        years_fromInitialYear: List = sorted([year for year in range(initialYear, datetime.now().year)])
 
         if years_adjustmentsDict != years_fromInitialYear:
-            raise ValueError("Not valid adjustments dictionary. It must contain an entry for every year since the first year in the provided DataFrame!")
+            raise ValueError("Not valid adjustments dictionary. It MUST contain an entry for every year since the first year in the provided DataFrame.")
 
     def performAnualAdjustments(self, df: pd.DataFrame, adjustmentsDict: Dict = None) -> pd.DataFrame:
         """Performs an anual adjustments on the current dataframe with the provided dictionary.
         If the parameters are not provided, the ones from the input file are used by default.
 
-        :param dict adjustmentsDict: dictionary of percentages of adjustment by year
+        :param pandas.DataFrame df: the DataFrame to which the adjustment should be applied.
+        :param dict adjustmentsDict: dictionary of percentages of adjustment by year.
+        :returns pandas.DataFrame:
         """
 
-        if not adjustmentsDict: adjustmentsDict = self.adjustmentsDict
+        if not adjustmentsDict: adjustmentsDict = self.adjustmentByYear
 
         self._checkDataFrameContiguity(df)
         self._checkAdjustmentsDict(min(df.columns), adjustmentsDict)
@@ -230,20 +235,33 @@ class DataControllerESIOS(DataController):
         
         return df
     
-    def resampleOnAxis0(self, sampleFreqInMins: int = None, method: str = None, splineOrder: int = None):
+    def resampleOnAxis0(self, df: pd.DataFrame, sampleFreqInMins: int = None, method: str = None, **kwargs) -> pd.DataFrame:
         """Resamples the current dataframe by rows, considering the resampling frequency, method and spline order for interpolation.
+        It uses the pandas.DataFrame.interpolate(method, splineOrder) method.
         If the parameters are not provided, the ones from the input file are used by default.
 
-        :param int sampleFreqInMins:
-        :param int method:
-        :param int splineOrder:
+        :param pandas.DataFrame df: the DataFrame to which the resampling should be applied.
+        :param int sampleFreqInMins: the required output frequency.
+        :param int method: the method by means of which the resampling will be performed. 
+            - 'polynomial', 'spline'. An 'order' must be specified in **kwargs
+        :param *optional* ``kwargs``: keyword arguments to pass on to the interpolation function.
+        :returns pandas.DataFrame:
         """
 
-        if not sampleFreqInMins: sampleFreqInMins = self.sampleFreqInMins
-        if not method: method = self.method
-        if not splineOrder: splineOrder = self.splineOrder
+        if not sampleFreqInMins: sampleFreqInMins = self.resampling_sampleFreqInMins
+        if not method: method = self.resampling_method
 
-        return None
+        polynomialMethods: List[str] = ["polynomial", "spline"]
+        acceptedInterpolationMethods: List[str] = [*polynomialMethods]
+
+        if method in polynomialMethods:
+            order: int = self.resampling_splineOrder
+            if "order" in kwargs:
+                order = kwargs["order"]
+
+            return self.bibliotecaGeneral.resampleaDataFrame(df, sampleFreqInMins, method, order)
+        else:
+            raise ValueError("Interpolation method '" + method + "' not implemented. Please choose some: " + ', '.join(acceptedInterpolationMethods) + ".")
     
     def resampleOnAxis1(self):
 
