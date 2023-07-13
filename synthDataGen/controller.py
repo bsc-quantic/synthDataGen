@@ -246,8 +246,7 @@ class DataControllerESIOS(DataController):
 
         :param pandas.DataFrame df: the DataFrame to which the resampling should be applied.
         :param int sampleFreqInMins: the required output frequency.
-        :param int method: the method by means of which the resampling will be performed. 
-            - 'polynomial', 'spline'. An 'order' must be specified in **kwargs
+        :param int method: the method by means of which the resampling will be performed. For 'polynomial' and 'spline' an 'order' must be specified in \*\*kwargs.
         :param *optional* ``kwargs``: keyword arguments to pass on to the interpolation function.
         :returns pandas.DataFrame:
         """
