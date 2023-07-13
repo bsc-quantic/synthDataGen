@@ -198,7 +198,7 @@ class DataControllerESIOS(DataController):
         df = self._getDataForTheRestOfYears(df, initialYear, initDatetime, hoursAhead, esiosInstance)
 
         # Shift the index (row names) to the current date
-        df.index = df.index + pd.offsets.DateOffset(years = initDatetime.year - self.initialYear)
+        df.index = df.index + pd.offsets.DateOffset(years = initDatetime.year - initialYear)
 
         return df
     
@@ -210,6 +210,10 @@ class DataControllerESIOS(DataController):
             raise ValueError("Not valid DataFrame. Years (column indices) MUST be continguous.")
 
     def _checkAdjustmentsDict(self, initialYear: int, adjustmentsDict: Dict):
+        #ToDo: check the type of the keys for the adjustmentsDict! They must be integers
+        if not all(isinstance(element, int) for element in adjustmentsDict.keys()):
+            raise ValueError("Not valid 'adjustmentsDict'. All values in it MUST be integers.")
+
         years_adjustmentsDict: List = sorted([year for year in adjustmentsDict.keys()])
         years_fromInitialYear: List = sorted([year for year in range(initialYear, datetime.now().year)])
 
