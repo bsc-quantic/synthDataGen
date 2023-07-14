@@ -35,5 +35,10 @@
         "sampleFreqInMins": 15,
         "method": "polynomial",
         "splineOrder": 2
+    },
+
+    "downsampling_params": {
+        "aggregationFunc": "mean",
+        "frequency": "2H"
     }
 }
