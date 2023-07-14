@@ -1,5 +1,6 @@
 import os
 import json
+import re
 
 from typing import Dict, List
 
@@ -26,6 +27,9 @@ class DataController:
         self._resampling_sampleFreqInMins: int = data["resampling_params"]["sampleFreqInMins"]
         self._resampling_method: str = data["resampling_params"]["method"]
         self._resampling_splineOrder: int = data["resampling_params"]["splineOrder"]
+
+        self._downsampling_frequency: str = data["downsampling_params"]["frequency"]
+        self._downsampling_aggreationFunc: str = data["downsampling_params"]["aggreationFunc"]
 
     @property
     def initialYear(self):
@@ -181,7 +185,7 @@ class DataControllerESIOS(DataController):
 
     def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
         """Get the data from source considering the specified parameters. 
-        If the parameters are not provided, the ones from the input file are used by default.
+        If some parameter is not provided, the one from the input file is used by default.
 
         :param int initialYear: first year considered for the request.
         :param datetime initDatetime: the initial (MM-DD-hh-mm) considered for the request.
@@ -210,7 +214,6 @@ class DataControllerESIOS(DataController):
             raise ValueError("Not valid DataFrame. Years (column indices) MUST be continguous.")
 
     def _checkAdjustmentsDict(self, initialYear: int, adjustmentsDict: Dict):
-        #ToDo: check the type of the keys for the adjustmentsDict! They must be integers
         if not all(isinstance(element, int) for element in adjustmentsDict.keys()):
             raise ValueError("Not valid 'adjustmentsDict'. All values in it MUST be integers.")
 
@@ -222,7 +225,7 @@ class DataControllerESIOS(DataController):
 
     def performAnualAdjustments(self, df: pd.DataFrame, adjustmentsDict: Dict = None) -> pd.DataFrame:
         """Performs an anual adjustments on the current dataframe with the provided dictionary.
-        If the parameters are not provided, the ones from the input file are used by default.
+        If some parameter is not provided, the one from the input file is used by default.
 
         :param pandas.DataFrame df: the DataFrame to which the adjustment should be applied.
         :param dict adjustmentsDict: dictionary of percentages of adjustment by year.
@@ -242,7 +245,7 @@ class DataControllerESIOS(DataController):
     def resampleOnAxis0(self, df: pd.DataFrame, sampleFreqInMins: int = None, method: str = None, **kwargs) -> pd.DataFrame:
         """Resamples the current dataframe by rows, considering the resampling frequency, method and spline order for interpolation.
         It uses the pandas.DataFrame.interpolate(method, splineOrder) method.
-        If the parameters are not provided, the ones from the input file are used by default.
+        If some parameter is not provided, the one from the input file is used by default.
 
         :param pandas.DataFrame df: the DataFrame to which the resampling should be applied.
         :param int sampleFreqInMins: the required output frequency.
@@ -266,6 +269,34 @@ class DataControllerESIOS(DataController):
         else:
             raise ValueError("Interpolation method '" + method + "' not implemented. Please choose some: " + ', '.join(acceptedInterpolationMethods) + ".")
     
-    def resampleOnAxis1(self):
+    def _checkFrequencyFormatIsValid(self, frequency: str):
+        if not re.match("(\d+)([DWMHTS])", frequency):
+            raise ValueError("Frequency '" + frequency + "' not valid. It should and integer followed by a unit ('M':monthly, 'W': weekly, 'D': daily, 'H': hourly, 'T': minutely, 'S': secondly). E.g. \"2T\" == and entry for every 2 minutes.")
 
-        return None
+    def _checkFinerDFResolution(self, df: pd.DataFrame, frequency: str):
+        dfFreq: str = pd.infer_freq(df.index)
+        
+        dfDelta: pd.Timedelta = pd.Timedelta(dfFreq)
+        freqDelta: pd.Timedelta = pd.Timedelta(frequency)
+
+        if freqDelta < dfDelta:
+            raise ValueError("The provided frequency '" + frequency + "' is of a finer resolution than the one of the DataFrame ('" + dfFreq + "'). Please, choose a coarser one for the data to be aggregated into.")
+
+    def downsample(self, df: pd.DataFrame, frequency: str = None, aggregationFunc: function | str = None) -> pd.DataFrame:
+        """Aggregates the DataFrame by means of an aggregation function, getting a new DataFrame with the specified frequency (which must be coarser-grained).
+        It uses the pandas.Dataframe.resample(rule) & the pandas.core.resample.Resampler.aggregate(func) methods.
+        If some parameter is not provided, the one from the input file is used by default.
+
+        :param pandas.DataFrame df: the DataFrame to which the downsampling should be applied.
+        :param str frequency: the resulting frequency under which the DataFrame should be aggregated
+        :param function | str aggregationFunc: a function (e.g. lambda x: x.mean()) or a string (e.g. "mean") representing the aggregation function to be applied
+        :returns pandas.DataFrame:
+        """
+
+        self._checkFrequencyFormatIsValid(frequency)
+        self._checkFinerDFResolution(df, frequency)
+
+        if not aggregationFunc: aggregationFunc = self.downsampling_aggreationFunc
+        if not frequency: frequency = self.downsampling_frequency
+
+        return df.resample(frequency).agg(aggregationFunc)
