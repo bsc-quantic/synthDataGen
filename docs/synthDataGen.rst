@@ -7,10 +7,16 @@ Submodules
 synthDataGen.controller module
 ------------------------------
 
-.. automodule:: synthDataGen.controller
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autoclass:: synthDataGen.controller.DataControllerESIOS
+
+   Methods
+   -------
+
+   .. automethod:: getDataFromSource
+   .. automethod:: performAnualAdjustments
+   .. automethod:: upsample
+   .. automethod:: downsample
+   .. automethod:: reloadParamsFile
 
 Module contents
 ---------------
