@@ -258,7 +258,7 @@ class DataControllerESIOS(DataController):
         return df
     
     def _checkFrequencyFormatIsValid(self, frequency: str):
-        if not re.match("(\d+)([DHTS])", frequency):
+        if not re.match("\d+(\.\d+)?[DHTS]", frequency):
             raise ValueError("Frequency '" + frequency + "' not valid. It should be an integer followed by a unit ('D': daily, 'H': hourly, 'T': minutely, 'S': secondly). E.g. \"2T\" == and entry for every 2 minutes.")
 
     def _getFreqNormalized(self, frequency: str) -> str:
