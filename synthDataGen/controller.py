@@ -359,3 +359,13 @@ class Sampling:
 
     def __init__(self, dataDict: Dict):
         return None
+    
+    def getSamples_truncNorm(self, df: pd.DataFrame, numberOfSamples: int) -> pd.DataFrame:
+        """Gets a number of samples for every column in the provided DataFrame. A normal truncated probability distribution is used to do so.
+
+        :param pandas.DataFrame df: the input DataFrame to be considered
+        :param int numberOfSamples: the number of samples that will be returned (number of rows)
+        :returns pandas.DataFrame:
+        """
+
+        return None
