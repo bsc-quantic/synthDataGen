@@ -8,28 +8,10 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 
-class DataController:
+class Controller:
 
     def __init__(self):
-        raise Exception("NON-INITIALIZER CLASS")
-
-    def _parseMainData(self, data):
-        # Basic parameters
-        self._initialYear: int = data["initialYear"] 
-        self._hoursAhead: int = data["hoursAhead"]
-        
-        self._dataSource: str = data["dataSource"]
-    
-        # Adjustment parameters
-        self._adjustmentByYear: Dict[int, int] = {int(key): value for key, value in data["adjustmentByYear"].items()}
-
-        # Up/down sampling parameters
-        self._upsampling_frequency: str = data["upsampling_params"]["frequency"]
-        self._upsampling_method: str = data["upsampling_params"]["method"]
-        self._upsampling_splineOrder: int = data["upsampling_params"]["splineOrder"]
-
-        self._downsampling_frequency: str = data["downsampling_params"]["frequency"]
-        self._downsampling_aggregationFunc: str = data["downsampling_params"]["aggregationFunc"]
+        return None
 
     @property
     def initialYear(self):
@@ -42,6 +24,172 @@ class DataController:
     @property
     def dataSource(self):
         return self._dataSource
+
+    @property
+    def inputJSON(self):
+        return self._inputJSON
+
+    @initialYear.setter
+    def initialYear(self, new_initialYear: str):
+        self._initialYear = new_initialYear
+
+    @hoursAhead.setter
+    def hoursAhead(self, new_hoursAhead: str):
+        self._hoursAhead = new_hoursAhead
+
+    @dataSource.setter
+    def dataSource(self, new_dataSource: str):
+        self._dataSource = new_dataSource
+    
+    @inputJSON.setter
+    def inputJSON(self, new_inputJSON: str):
+        self._inputJSON = new_inputJSON
+
+    def _parseMainData(self, data):
+        # Basic parameters
+        self._initialYear: int = data["initialYear"] 
+        self._hoursAhead: int = data["hoursAhead"]
+        
+        self._dataSource: str = data["dataSource"]
+
+    def loadMainParams(self, paramsFileName: str, directory: str = os.getcwd()):
+        """Loads the main parameters from the specified input JSON.
+        May be useful to reload the input parameters file at any time during the execution. The corresponding controller instances should be created again, passing to them the inputJSON member (which has been reloaded).
+
+        :param str paramsFileName: the name of the JSON file containing the dictionary.
+        :param str directory: the directory in which the paramsFileName is located.
+        """
+
+        self._paramsFileName = paramsFileName
+        self._paramsFileDirectory = directory
+
+        self._inputParamsFile = os.path.join(directory, paramsFileName)
+        with open(self._inputParamsFile, 'r') as jsonFile:
+            self._inputJSON = json.load(jsonFile)
+
+            self._parseMainData(self._inputJSON)
+
+            if self.dataSource == "ESIOS":
+                self._dataInstance = self.ESIOSController()
+                self._dataInstance.loadData(self._inputJSON)
+            else:
+                raise ValueError("UNKNOWN DATA SOURCE " + self.dataSource)
+
+    def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
+        """Get the data from source considering the specified parameters. 
+        If some parameter is not provided, the one from the input file is used by default.
+
+        :param int initialYear: first year considered for the request.
+        :param datetime initDatetime: the initial (MM-DD-hh-mm) considered for the request.
+        :param int hoursAhead: hours from 'initDatetime' on that we want to consider for the request.
+        :returns pandas.DataFrame:
+        """
+
+        if not initialYear: initialYear = self.initialYear
+        if not hoursAhead: hoursAhead = self.hoursAhead
+
+        return self._dataInstance.getDataFromSource(initialYear, initDatetime, hoursAhead)
+
+    class ESIOSController():
+
+        from synthDataGen.common import bibliotecaEsios
+
+        def __init__(self):
+            return None
+
+        def loadData(self, data: Dict):
+            self._keysFileDir: str = data["ESIOS_params"]["keysFileDir"]
+            self._keysFileName: str = data["ESIOS_params"]["keysFileName"]
+
+            keysFile = os.path.join(self.keysFileDir, self.keysFileName)
+            with open(keysFile, 'r') as keysJSONFile:
+                esiosKeyData = json.load(keysJSONFile)
+                self.__esiosKey = esiosKeyData["ESIOS_KEY"]    # We'll let this private
+
+            self._indicadores: List[int] = data["ESIOS_params"]["indicadores"]
+            self._time_trunc: str = data["ESIOS_params"]["time_trunc"]
+
+        @property
+        def keysFileDir(self):
+            return self._keysFileDir
+        
+        @property
+        def keysFileName(self):
+            return self._keysFileName
+        
+        @property
+        def indicadores(self):
+            return self._indicadores
+
+        @property
+        def time_trunc(self):
+            return self._time_trunc
+
+        @keysFileDir.setter
+        def keysFileDir(self, new_keysFileDir: str):
+            self._keysFileDir = new_keysFileDir
+
+        @keysFileName.setter
+        def keysFileName(self, new_keysFileName: str):
+            self._keysFileName = new_keysFileName
+
+        @indicadores.setter
+        def indicadores(self, new_indicadores: str):
+            self._indicadores = new_indicadores
+
+        @time_trunc.setter
+        def time_trunc(self, new_time_trunc: str):
+            self._time_trunc = new_time_trunc
+
+        def _getDataForYear(self, year: int, initDatetime: datetime, hoursAhead: int, esios) -> pd.DataFrame:
+            initialDate: datetime = datetime(year, 
+                                            initDatetime.month, initDatetime.day, initDatetime.hour, initDatetime.minute)
+            endDate: datetime = initialDate + timedelta(hours = hoursAhead)
+
+            return esios.dataframe_lista_de_indicadores_de_esios_por_fechas(self.indicadores, 
+                                                                            initialDate, endDate,
+                                                                            time_trunc = self.time_trunc,
+                                                                            inlcuye29DeFebrero = '').filter(["value"], axis = 1)
+
+        def _getDataForFirstYear(self, initialYear: int, initDatetime: datetime, hoursAhead: int, esios) -> pd.DataFrame:
+            return self._getDataForYear(initialYear, initDatetime, hoursAhead, esios).rename(columns = {"value": initialYear})
+
+        def _getDataForTheRestOfYears(self, df: pd.DataFrame, initialYear: int, initDatetime: datetime, hoursAhead: int, esios) -> pd.DataFrame:
+            for year in range(initialYear + 1, datetime.now().year):
+                df[year] = list(self._getDataForYear(year, initDatetime, hoursAhead, esios)["value"])
+
+            return df
+
+        def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
+            if not initialYear: initialYear = self.initialYear
+            if not hoursAhead: hoursAhead = self.hoursAhead
+
+            esiosInstance = self.bibliotecaEsios.BajadaDatosESIOS(self.__esiosKey)
+
+            df: pd.DataFrame = self._getDataForFirstYear(initialYear, initDatetime, hoursAhead, esiosInstance)
+            df = self._getDataForTheRestOfYears(df, initialYear, initDatetime, hoursAhead, esiosInstance)
+
+            # Shift the index (row names) to the current date
+            df.index = df.index + pd.offsets.DateOffset(years = initDatetime.year - initialYear)
+
+            return df
+    
+
+class AdjustmentController():
+
+    from synthDataGen.common import bibliotecaGeneral
+
+    def __init__(self, dataDict: Dict):
+        # Adjustment parameters
+        self._adjustmentByYear: Dict[int, int] = {int(key): value for key, value in dataDict["adjustmentByYear"].items()}
+
+        # Up/down sampling parameters
+        self._upsampling_frequency: str = dataDict["upsampling_params"]["frequency"]
+        self._upsampling_method: str = dataDict["upsampling_params"]["method"]
+        self._upsampling_splineOrder: int = dataDict["upsampling_params"]["splineOrder"]
+
+        self._downsampling_frequency: str = dataDict["downsampling_params"]["frequency"]
+        self._downsampling_aggregationFunc: str = dataDict["downsampling_params"]["aggregationFunc"]
 
     @property
     def adjustmentByYear(self):
@@ -67,18 +215,6 @@ class DataController:
     def downsampling_aggregationFunc(self):
         return self._downsampling_aggregationFunc
 
-    @initialYear.setter
-    def initialYear(self, new_initialYear: str):
-        self._initialYear = new_initialYear
-
-    @hoursAhead.setter
-    def hoursAhead(self, new_hoursAhead: str):
-        self._hoursAhead = new_hoursAhead
-
-    @dataSource.setter
-    def dataSource(self, new_dataSource: str):
-        self._dataSource = new_dataSource
-
     @adjustmentByYear.setter
     def adjustmentByYear(self, new_adjustmentByYear: str):
         self._adjustmentByYear = new_adjustmentByYear
@@ -103,125 +239,6 @@ class DataController:
     def downsampling_aggregationFunc(self, new_downsampling_aggregationFunc: str):
         self._downsampling_aggregationFunc = new_downsampling_aggregationFunc
 
-
-class DataControllerESIOS(DataController):
-
-    from synthDataGen.common import bibliotecaEsios
-    from synthDataGen.common import bibliotecaGeneral
-
-    def __init__(self, paramsFileName: str, directory: str = os.getcwd()):
-        self._paramsFileName = paramsFileName
-        self._paramsFileDirectory = directory
-
-        inputParamsFile = os.path.join(directory, paramsFileName)
-        self._loadParams(inputParamsFile)
-
-    def _loadParams(self, inputParamsFile: str):
-        with open(inputParamsFile, 'r') as jsonFile:
-            data = json.load(jsonFile)
-
-            self._parseMainData(data)
-
-            if self.dataSource == "ESIOS":
-                self.__loadDataFromESIOS(data)
-            else:
-                raise ValueError("UNKNOWN DATA SOURCE " + self.dataSource)
-
-    def __loadDataFromESIOS(self, data: Dict):
-        self._keysFileDir: str = data["ESIOS_params"]["keysFileDir"]
-        self._keysFileName: str = data["ESIOS_params"]["keysFileName"]
-
-        keysFile = os.path.join(self.keysFileDir, self.keysFileName)
-        with open(keysFile, 'r') as keysJSONFile:
-            esiosKeyData = json.load(keysJSONFile)
-            self.__esiosKey = esiosKeyData["ESIOS_KEY"]    # We'll let this private
-
-        self._indicadores: List[int] = data["ESIOS_params"]["indicadores"]
-        self._time_trunc: str = data["ESIOS_params"]["time_trunc"]
-
-    @property
-    def keysFileDir(self):
-        return self._keysFileDir
-    
-    @property
-    def keysFileName(self):
-        return self._keysFileName
-    
-    @property
-    def indicadores(self):
-        return self._indicadores
-
-    @property
-    def time_trunc(self):
-        return self._time_trunc
-
-    @keysFileDir.setter
-    def keysFileDir(self, new_keysFileDir: str):
-        self._keysFileDir = new_keysFileDir
-
-    @keysFileName.setter
-    def keysFileName(self, new_keysFileName: str):
-        self._keysFileName = new_keysFileName
-
-    @indicadores.setter
-    def indicadores(self, new_indicadores: str):
-        self._indicadores = new_indicadores
-
-    @time_trunc.setter
-    def time_trunc(self, new_time_trunc: str):
-        self._time_trunc = new_time_trunc
-
-    def reloadParamsFile(self):
-        """Reloads the input parameters file. 
-        Used in case the user has modified some input field (e.g. for adjustment) in the input file.
-        """
-
-        inputParamsFile = os.path.join(self._paramsFileDirectory, self._paramsFileName)
-        self._loadParams(inputParamsFile)
-
-    def _getDataForYear(self, year: int, initDatetime: datetime, hoursAhead: int, esios) -> pd.DataFrame:
-        initialDate: datetime = datetime(year, 
-                                         initDatetime.month, initDatetime.day, initDatetime.hour, initDatetime.minute)
-        endDate: datetime = initialDate + timedelta(hours = hoursAhead)
-        # print("inicio: " + str(inicio) + " - hasta: " + str(hasta))
-
-        return esios.dataframe_lista_de_indicadores_de_esios_por_fechas(self.indicadores, 
-                                                                        initialDate, endDate,
-                                                                        time_trunc = self.time_trunc,
-                                                                        inlcuye29DeFebrero = '').filter(["value"], axis = 1)
-
-    def _getDataForFirstYear(self, initialYear: int, initDatetime: datetime, hoursAhead: int, esios) -> pd.DataFrame:
-        return self._getDataForYear(initialYear, initDatetime, hoursAhead, esios).rename(columns = {"value": initialYear})
-
-    def _getDataForTheRestOfYears(self, df: pd.DataFrame, initialYear: int, initDatetime: datetime, hoursAhead: int, esios) -> pd.DataFrame:
-        for year in range(initialYear + 1, datetime.now().year):
-            df[year] = list(self._getDataForYear(year, initDatetime, hoursAhead, esios)["value"])
-
-        return df
-
-    def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
-        """Get the data from source considering the specified parameters. 
-        If some parameter is not provided, the one from the input file is used by default.
-
-        :param int initialYear: first year considered for the request.
-        :param datetime initDatetime: the initial (MM-DD-hh-mm) considered for the request.
-        :param int hoursAhead: hours from 'initDatetime' on that we want to consider for the request.
-        :returns pandas.DataFrame:
-        """
-        
-        if not initialYear: initialYear = self.initialYear
-        if not hoursAhead: hoursAhead = self.hoursAhead
-
-        esiosInstance = self.bibliotecaEsios.BajadaDatosESIOS(self.__esiosKey)
-
-        df: pd.DataFrame = self._getDataForFirstYear(initialYear, initDatetime, hoursAhead, esiosInstance)
-        df = self._getDataForTheRestOfYears(df, initialYear, initDatetime, hoursAhead, esiosInstance)
-
-        # Shift the index (row names) to the current date
-        df.index = df.index + pd.offsets.DateOffset(years = initDatetime.year - initialYear)
-
-        return df
-    
     def _checkDataFrameContiguity(self, df: pd.DataFrame):
         years: List = list(df.columns)
 
@@ -253,7 +270,7 @@ class DataControllerESIOS(DataController):
         self._checkAdjustmentsDict(min(df.columns), adjustmentsDict)
 
         for element in df.columns:
-            df[element] = df[element] * adjustmentsDict[element]
+            df[element] = df[element] * (1 + adjustmentsDict[element] / 100)
         
         return df
     
@@ -337,3 +354,8 @@ class DataControllerESIOS(DataController):
         if not frequency: frequency = self.downsampling_frequency
 
         return df.resample(frequency).agg(aggregationFunc)
+    
+class Sampling:
+
+    def __init__(self, dataDict: Dict):
+        return None
