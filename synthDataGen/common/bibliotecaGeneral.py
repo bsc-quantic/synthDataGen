@@ -71,7 +71,7 @@ def calculaCorrecionDePreciosPorIPC(unDiccionarioAgnoIPC):
         
     return correccion_IPC
 
-def resampleaDataFrame(df, frecuenciaSampleoMinutos, method='polynomial', order=2):
+def resampleaDataFrame(df, frecuenciaSampleo, method='polynomial', order=2):
     """ Resamplea un dataframe, en el que index es un datetime, a la frecuenciSampleoMinutos pasada
 
     Importante: lo parámetros method y order son los mismo que el método interpolate de la clase DataFrame
@@ -108,7 +108,7 @@ def resampleaDataFrame(df, frecuenciaSampleoMinutos, method='polynomial', order=
        
         
     :param df: Un dataframe con index un datetimeIndex
-    :param frecuenciaSampleoMinutos: un entero con el número de minutos en el que df será resampleado
+    :param frecuenciaSampleo: un string con la frecuencia de sampleo que se desea (ej. "2T" === 2 minutos)
     :param method: Método de interpolación (ver ayuda de df.interpolate)
     :param order: Parámetro adicional para la interpolación  (ver ayuda de df.interpolate)
     
@@ -118,9 +118,9 @@ def resampleaDataFrame(df, frecuenciaSampleoMinutos, method='polynomial', order=
     
     primerValor = df.index[0]
     ultimoValor = df.index[-1] 
-    sampleoCHAR = str(frecuenciaSampleoMinutos) + 'min'
+
     # SampleoDeseado, es un dataframe con indice timeStamp con sampleo deseado
-    sampleoDeseado = pd.date_range(primerValor, ultimoValor, freq=sampleoCHAR)
+    sampleoDeseado = pd.date_range(primerValor, ultimoValor, freq=frecuenciaSampleo)
     df = df.reindex(df.index.union(sampleoDeseado))
     df =df.interpolate(method=method, order=order)
 

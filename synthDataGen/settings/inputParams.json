@@ -31,14 +31,14 @@
         "2007": 10    
     },
 
-    "resampling_params": {
-        "sampleFreqInMins": 15,
+    "upsampling_params": {
+        "frequency": "15T",
         "method": "polynomial",
         "splineOrder": 2
     },
 
     "downsampling_params": {
-        "aggregationFunc": "mean",
-        "frequency": "2H"
+        "frequency": "2H",
+        "aggregationFunc": "mean"
     }
 }
