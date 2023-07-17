@@ -21,7 +21,9 @@ controller = DataControllerESIOS("inputParams.json", "./synthDataGen/settings/")
 
 df = controller.getDataFromSource()
 df = controller.performAnualAdjustments(df)
-df = controller.resampleOnAxis0(df)
+df = controller.upsample(df)
+
+df = controller.downsample(df)
 ```
 
 ## Arguments passing
@@ -33,5 +35,7 @@ controller = DataControllerESIOS("inputParams.json", "./synthDataGen/settings/")
 
 df = controller.getDataFromSource(initialYear=2018, initDatetime=d, hoursAhead=6)
 df = controller.performAnualAdjustments(df, adjustmentsDict={2018: 1.012, 2019: 1.023, 2020: 1.0145, 2021: 1.03, 2022: 1.08})
-df = controller.resampleOnAxis0(df, sampleFreqInMins=20, method="spline", order=3)
+df = controller.upsample(df, frequency="20T", method="spline", order=3)
+
+df = controller.downsample(df, frequency="2.5H", aggregationFunc="mean")
 ```
