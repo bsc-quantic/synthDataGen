@@ -7,16 +7,30 @@ Submodules
 synthDataGen.controller module
 ------------------------------
 
-.. autoclass:: synthDataGen.controller.DataControllerESIOS
+.. autoclass:: synthDataGen.controller.Controller
 
    Methods
    -------
 
+   .. automethod:: loadMainParams
    .. automethod:: getDataFromSource
+
+.. autoclass:: synthDataGen.controller.AdjustmentController
+
+   Methods
+   -------
+
    .. automethod:: performAnualAdjustments
    .. automethod:: upsample
    .. automethod:: downsample
-   .. automethod:: reloadParamsFile
+
+.. autoclass:: synthDataGen.controller.Sampling
+
+   Methods
+   -------
+   
+   .. automethod:: getSamples_truncNorm
+   
 
 Module contents
 ---------------
