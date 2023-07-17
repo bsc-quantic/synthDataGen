@@ -15,7 +15,7 @@ class DataController:
 
     def _parseMainData(self, data):
         # Basic parameters
-        self._initialYear: int = data["initialYear"]
+        self._initialYear: int = data["initialYear"] 
         self._hoursAhead: int = data["hoursAhead"]
         
         self._dataSource: str = data["dataSource"]
@@ -23,13 +23,13 @@ class DataController:
         # Adjustment parameters
         self._adjustmentByYear: Dict[int, int] = {int(key): value for key, value in data["adjustmentByYear"].items()}
 
-        # Resampling parameters
-        self._resampling_sampleFreqInMins: int = data["resampling_params"]["sampleFreqInMins"]
-        self._resampling_method: str = data["resampling_params"]["method"]
-        self._resampling_splineOrder: int = data["resampling_params"]["splineOrder"]
+        # Up/down sampling parameters
+        self._upsampling_frequency: str = data["upsampling_params"]["frequency"]
+        self._upsampling_method: str = data["upsampling_params"]["method"]
+        self._upsampling_splineOrder: int = data["upsampling_params"]["splineOrder"]
 
         self._downsampling_frequency: str = data["downsampling_params"]["frequency"]
-        self._downsampling_aggreationFunc: str = data["downsampling_params"]["aggreationFunc"]
+        self._downsampling_aggregationFunc: str = data["downsampling_params"]["aggregationFunc"]
 
     @property
     def initialYear(self):
@@ -48,16 +48,24 @@ class DataController:
         return self._adjustmentByYear
 
     @property
-    def resampling_sampleFreqInMins(self):
-        return self._resampling_sampleFreqInMins
+    def upsampling_frequency(self):
+        return self._upsampling_frequency
     
     @property
-    def resampling_method(self):
-        return self._resampling_method
+    def upsampling_method(self):
+        return self._upsampling_method
     
     @property
-    def resampling_splineOrder(self):
-        return self._resampling_splineOrder
+    def upsampling_splineOrder(self):
+        return self._upsampling_splineOrder
+    
+    @property
+    def downsampling_frequency(self):
+        return self._downsampling_frequency
+    
+    @property
+    def downsampling_aggregationFunc(self):
+        return self._downsampling_aggregationFunc
 
     @initialYear.setter
     def initialYear(self, new_initialYear: str):
@@ -75,17 +83,25 @@ class DataController:
     def adjustmentByYear(self, new_adjustmentByYear: str):
         self._adjustmentByYear = new_adjustmentByYear
 
-    @resampling_sampleFreqInMins.setter
-    def resampling_sampleFreqInMins(self, new_resampling_sampleFreqInMins: str):
-        self._resampling_sampleFreqInMins = new_resampling_sampleFreqInMins
+    @upsampling_frequency.setter
+    def upsampling_frequency(self, new_upsampling_frequency: str):
+        self._upsampling_frequency = new_upsampling_frequency
     
-    @resampling_method.setter
-    def resampling_method(self, new_resampling_method: str):
-        self._resampling_method = new_resampling_method
+    @upsampling_method.setter
+    def upsampling_method(self, new_upsampling_method: str):
+        self._upsampling_method = new_upsampling_method
 
-    @resampling_splineOrder.setter
-    def resampling_splineOrder(self, new_resampling_splineOrder: str):
-        self._resampling_splineOrder = new_resampling_splineOrder
+    @upsampling_splineOrder.setter
+    def upsampling_splineOrder(self, new_upsampling_splineOrder: str):
+        self._upsampling_splineOrder = new_upsampling_splineOrder
+
+    @downsampling_frequency.setter
+    def downsampling_frequency(self, new_downsampling_frequency: str):
+        self._downsampling_frequency = new_downsampling_frequency
+
+    @downsampling_aggregationFunc.setter
+    def downsampling_aggregationFunc(self, new_downsampling_aggregationFunc: str):
+        self._downsampling_aggregationFunc = new_downsampling_aggregationFunc
 
 
 class DataControllerESIOS(DataController):
@@ -208,7 +224,6 @@ class DataControllerESIOS(DataController):
     
     def _checkDataFrameContiguity(self, df: pd.DataFrame):
         years: List = list(df.columns)
-        print(years)
 
         if not sorted(years) == list(range(min(years), max(years) + 1)):
             raise ValueError("Not valid DataFrame. Years (column indices) MUST be continguous.")
@@ -242,39 +257,58 @@ class DataControllerESIOS(DataController):
         
         return df
     
-    def resampleOnAxis0(self, df: pd.DataFrame, sampleFreqInMins: int = None, method: str = None, **kwargs) -> pd.DataFrame:
-        """Resamples the current dataframe by rows, considering the resampling frequency, method and spline order for interpolation.
+    def _checkFrequencyFormatIsValid(self, frequency: str):
+        if not re.match("(\d+)([DHTS])", frequency):
+            raise ValueError("Frequency '" + frequency + "' not valid. It should be an integer followed by a unit ('D': daily, 'H': hourly, 'T': minutely, 'S': secondly). E.g. \"2T\" == and entry for every 2 minutes.")
+
+    def _getFreqNormalized(self, frequency: str) -> str:
+        reSult = re.match("([DHTS])", frequency)
+        if reSult:
+            return "1" + str(reSult.group(1))
+
+        return frequency
+
+    def _checkCoarserDFResolution(self, df: pd.DataFrame, frequency: str):
+        dfFreq: str = self._getFreqNormalized(pd.infer_freq(df.index))
+        
+        dfDelta: pd.Timedelta = pd.Timedelta(dfFreq)
+        freqDelta: pd.Timedelta = pd.Timedelta(frequency)
+
+        if freqDelta > dfDelta:
+            raise ValueError("The provided frequency '" + frequency + "' is of a coarser resolution than the one of the DataFrame ('" + dfFreq + "'). Please, choose a finer one for the data to be upsampled.")
+
+    def upsample(self, df: pd.DataFrame, frequency: str = None, method: str = None, **kwargs) -> pd.DataFrame:
+        """Interpolates the DataFrame by rows, considering the upsampling frequency (which must be finer-grained), method and spline order for interpolation.
         It uses the pandas.DataFrame.interpolate(method, splineOrder) method.
         If some parameter is not provided, the one from the input file is used by default.
 
-        :param pandas.DataFrame df: the DataFrame to which the resampling should be applied.
-        :param int sampleFreqInMins: the required output frequency.
-        :param int method: the method by means of which the resampling will be performed. For 'polynomial' and 'spline' an 'order' must be specified in \*\*kwargs.
+        :param pandas.DataFrame df: the DataFrame to which the upsampling should be applied.
+        :param int frequency: the required output frequency.
+        :param int method: the method by means of which the upsampling will be performed. For 'polynomial' and 'spline' an 'order' must be specified in \*\*kwargs.
         :param *optional* ``kwargs``: keyword arguments to pass on to the interpolation function.
         :returns pandas.DataFrame:
         """
 
-        if not sampleFreqInMins: sampleFreqInMins = self.resampling_sampleFreqInMins
-        if not method: method = self.resampling_method
+        if not frequency: frequency = self.upsampling_frequency
+        if not method: method = self.upsampling_method
+
+        self._checkFrequencyFormatIsValid(frequency)
+        self._checkCoarserDFResolution(df, frequency)
 
         polynomialMethods: List[str] = ["polynomial", "spline"]
         acceptedInterpolationMethods: List[str] = [*polynomialMethods]
 
         if method in polynomialMethods:
-            order: int = self.resampling_splineOrder
+            order: int = self.upsampling_splineOrder
             if "order" in kwargs:
                 order = kwargs["order"]
 
-            return self.bibliotecaGeneral.resampleaDataFrame(df, sampleFreqInMins, method, order)
+            return self.bibliotecaGeneral.resampleaDataFrame(df, frequency, method, order)
         else:
             raise ValueError("Interpolation method '" + method + "' not implemented. Please choose some: " + ', '.join(acceptedInterpolationMethods) + ".")
-    
-    def _checkFrequencyFormatIsValid(self, frequency: str):
-        if not re.match("(\d+)([DWMHTS])", frequency):
-            raise ValueError("Frequency '" + frequency + "' not valid. It should and integer followed by a unit ('M':monthly, 'W': weekly, 'D': daily, 'H': hourly, 'T': minutely, 'S': secondly). E.g. \"2T\" == and entry for every 2 minutes.")
-
+        
     def _checkFinerDFResolution(self, df: pd.DataFrame, frequency: str):
-        dfFreq: str = pd.infer_freq(df.index)
+        dfFreq: str = self._getFreqNormalized(pd.infer_freq(df.index))
         
         dfDelta: pd.Timedelta = pd.Timedelta(dfFreq)
         freqDelta: pd.Timedelta = pd.Timedelta(frequency)
@@ -282,7 +316,7 @@ class DataControllerESIOS(DataController):
         if freqDelta < dfDelta:
             raise ValueError("The provided frequency '" + frequency + "' is of a finer resolution than the one of the DataFrame ('" + dfFreq + "'). Please, choose a coarser one for the data to be aggregated into.")
 
-    def downsample(self, df: pd.DataFrame, frequency: str = None, aggregationFunc: function | str = None) -> pd.DataFrame:
+    def downsample(self, df: pd.DataFrame, frequency: str = None, aggregationFunc = None) -> pd.DataFrame:
         """Aggregates the DataFrame by means of an aggregation function, getting a new DataFrame with the specified frequency (which must be coarser-grained).
         It uses the pandas.Dataframe.resample(rule) & the pandas.core.resample.Resampler.aggregate(func) methods.
         If some parameter is not provided, the one from the input file is used by default.
@@ -292,6 +326,9 @@ class DataControllerESIOS(DataController):
         :param function | str aggregationFunc: a function (e.g. lambda x: x.mean()) or a string (e.g. "mean") representing the aggregation function to be applied
         :returns pandas.DataFrame:
         """
+
+        if not frequency: frequency = self.downsampling_frequency
+        if not aggregationFunc: aggregationFunc = self.downsampling_aggregationFunc
 
         self._checkFrequencyFormatIsValid(frequency)
         self._checkFinerDFResolution(df, frequency)
