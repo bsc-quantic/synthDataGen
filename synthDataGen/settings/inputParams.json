@@ -40,5 +40,10 @@
     "downsampling_params": {
         "frequency": "2H",
         "aggregationFunc": "mean"
+    },
+
+    "sampling": {
+        "numberOfSamples": "5000",
+        "probDistribution": "truncnorm"
     }
 }

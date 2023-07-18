@@ -2,9 +2,10 @@ import os
 import json
 import re
 
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import pandas as pd
+from scipy.stats import truncnorm
 from datetime import datetime, timedelta
 
 
@@ -357,15 +358,63 @@ class AdjustmentController():
     
 class Sampling:
 
+    _availProbDistibutions: List = ["truncnorm"]
+
     def __init__(self, dataDict: Dict):
-        return None
+        self._numberOfSamples: str = dataDict["sampling"]["numberOfSamples"]
+        self._probDistribution: str = dataDict["sampling"]["probDistribution"]
     
-    def getSamples_truncNorm(self, df: pd.DataFrame, numberOfSamples: int) -> pd.DataFrame:
-        """Gets a number of samples for every column in the provided DataFrame. A normal truncated probability distribution is used to do so.
+    @property
+    def numberOfSamples(self):
+        return self.numberOfSamples
+
+    @property
+    def probDistribution(self):
+        return self._probDistribution
+
+    @numberOfSamples.setter
+    def numberOfSamples(self, new_numberOfSamples: str):
+        self._numberOfSamples = new_numberOfSamples
+
+    @probDistribution.setter
+    def probDistribution(self, new_probDistribution: str):
+        self._probDistribution = new_probDistribution
+
+    def _getMeanAndStdForAxis(self, df: pd.DataFrame, axis: int) -> Tuple[List, List]:
+        means: pd.Series = df.mean(axis = axis)
+        stds: pd.Series = df.std(axis = axis, ddof = 0)
+
+        return (means, stds)
+        
+    def _getSamples_truncnorm(self, df: pd.DataFrame, numberOfSamples: int, means: List[float], stds: List[float]) -> pd.DataFrame:
+        resultingDataFrame: pd.DataFrame = pd.DataFrame()
+
+        for index, (mu, sigma) in enumerate(zip(means, stds)):
+            lowerBound = 0
+            upperBound = mu + 2*sigma
+
+            pdf = truncnorm((lowerBound - mu) / sigma,
+                            (upperBound - mu) / sigma,
+                            loc = mu, scale = sigma)
+
+            samples = pdf.rvs(numberOfSamples)
+            resultingDataFrame[index, samples]
+        
+        return resultingDataFrame
+
+    def getSamples(self, df: pd.DataFrame, numberOfSamples: int = None, probDistribution: str = None) -> pd.DataFrame:
+        """Gets a number of samples for every column in the provided DataFrame. A truncated normal probability distribution is used to do so.
 
         :param pandas.DataFrame df: the input DataFrame to be considered
         :param int numberOfSamples: the number of samples that will be returned (number of rows)
         :returns pandas.DataFrame:
         """
 
-        return None
+        if not numberOfSamples: numberOfSamples = self.numberOfSamples
+        if not probDistribution: probDistribution = self.probDistribution
+
+        if probDistribution == "truncnorm":
+            means, stds = self._getMeanAndStdForAxis(df, 1)
+            return self._getSamples_truncnorm(df, numberOfSamples, means, stds)
+        else:
+            raise ValueError("Probability distribution '" + probDistribution +"' not available for sampling. Please choose one in: " + ', '.join(self._availProbDistibutions))
