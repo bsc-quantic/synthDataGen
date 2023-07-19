@@ -176,7 +176,7 @@ class Controller:
             return df
     
 
-class AdjustmentController():
+class Adjustments():
 
     from synthDataGen.common import bibliotecaGeneral
 
