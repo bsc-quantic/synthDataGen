@@ -340,8 +340,8 @@ class Adjustments():
         If some parameter is not provided, the one from the input file is used by default.
 
         :param pandas.DataFrame df: the DataFrame to which the downsampling should be applied.
-        :param str frequency: the resulting frequency under which the DataFrame should be aggregated
-        :param function | str aggregationFunc: a function (e.g. lambda x: x.mean()) or a string (e.g. "mean") representing the aggregation function to be applied
+        :param str frequency: the resulting frequency under which the DataFrame should be aggregated.
+        :param function | str aggregationFunc: a function (e.g. lambda x: x.mean()) or a string (e.g. "mean") representing the aggregation function to be applied.
         :returns pandas.DataFrame:
         """
 
@@ -358,7 +358,7 @@ class Adjustments():
     
 class Sampling:
 
-    _availProbDistibutions: List = ["truncnorm"]
+    _availProbDistibutions: List = ["'truncnorm'"]
 
     def __init__(self, dataDict: Dict):
         self._numberOfSamples: int = dataDict["sampling"]["numberOfSamples"]
@@ -389,7 +389,8 @@ class Sampling:
     def _getSamples_truncnorm(self, df: pd.DataFrame, numberOfSamples: int, means: List[float], stds: List[float]) -> pd.DataFrame:
         resultingDataFrame: pd.DataFrame = pd.DataFrame()
 
-        for index, (mu, sigma) in enumerate(zip(means, stds)):
+        for index, mu, sigma in zip(df.index, means, stds):
+        # for index, (mu, sigma) in enumerate(zip(means, stds)):
             lowerBound = 0
             upperBound = mu + 2*sigma
 
@@ -405,8 +406,9 @@ class Sampling:
     def getSamples(self, df: pd.DataFrame, numberOfSamples: int = None, probDistribution: str = None) -> pd.DataFrame:
         """Gets a number of samples for every column in the provided DataFrame. A truncated normal probability distribution is used to do so.
 
-        :param pandas.DataFrame df: the input DataFrame to be considered
-        :param int numberOfSamples: the number of samples that will be returned (number of rows)
+        :param pandas.DataFrame df: the input DataFrame to be considered.
+        :param int numberOfSamples: the number of samples that will be returned (number of rows).
+        :param str probDistribution: a string defining the probability distribution to be used. For instance "truncnorm".
         :returns pandas.DataFrame:
         """
 
@@ -417,4 +419,4 @@ class Sampling:
             means, stds = self._getMeanAndStdForAxis(df, 1)
             return self._getSamples_truncnorm(df, numberOfSamples, means, stds)
         else:
-            raise ValueError("Probability distribution '" + probDistribution +"' not available for sampling. Please choose one in: " + ', '.join(self._availProbDistibutions))
+            raise ValueError("Probability distribution '" + probDistribution +"' not available for sampling. Please choose one of the following: " + ', '.join(self._availProbDistibutions))
