@@ -43,7 +43,7 @@
     },
 
     "sampling": {
-        "numberOfSamples": "5000",
+        "numberOfSamples": 5000,
         "probDistribution": "truncnorm"
     }
 }

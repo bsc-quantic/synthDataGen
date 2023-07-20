@@ -361,12 +361,12 @@ class Sampling:
     _availProbDistibutions: List = ["truncnorm"]
 
     def __init__(self, dataDict: Dict):
-        self._numberOfSamples: str = dataDict["sampling"]["numberOfSamples"]
+        self._numberOfSamples: int = dataDict["sampling"]["numberOfSamples"]
         self._probDistribution: str = dataDict["sampling"]["probDistribution"]
     
     @property
     def numberOfSamples(self):
-        return self.numberOfSamples
+        return self._numberOfSamples
 
     @property
     def probDistribution(self):
@@ -398,7 +398,7 @@ class Sampling:
                             loc = mu, scale = sigma)
 
             samples = pdf.rvs(numberOfSamples)
-            resultingDataFrame[index, samples]
+            resultingDataFrame[index] = samples
         
         return resultingDataFrame
 
