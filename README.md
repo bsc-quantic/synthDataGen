@@ -15,27 +15,45 @@ While the first approach is the more straighforward one, where the user just app
 The following examples have been included and extended in the fullExample.ipynb in ./notebooks.
 
 ```
-from synthDataGen.controller import DataControllerESIOS
+from synthDataGen.controller import Controller, Adjustments, Sampling
 
-controller = DataControllerESIOS("inputParams.json", "./synthDataGen/settings/")
-
+controller = Controller()
+controller.loadMainParams("inputParams.json", "./synthDataGen/settings/")
 df = controller.getDataFromSource()
-df = controller.performAnualAdjustments(df)
-df = controller.upsample(df)
 
-df = controller.downsample(df)
+# DataFrame adjustments
+adjustments = Adjustments(controller.inputJSON)
+df = adjustments.performAnualAdjustments(df)
+
+# Up/down sampling
+df = adjustments.upsample(df)
+df = adjustments.downsample(df)
+
+# Samples generation
+sampling = Sampling(controller.inputJSON)
+df = sampling.getSamples(df)
 ```
 
 ## Arguments passing
 
 ```
-from synthDataGen.controller import DataControllerESIOS
+from synthDataGen.controller import Controller, Adjustments, Sampling
 
-controller = DataControllerESIOS("inputParams.json", "./synthDataGen/settings/")
+from datetime import datetime
 
-df = controller.getDataFromSource(initialYear=2018, initDatetime=d, hoursAhead=6)
-df = controller.performAnualAdjustments(df, adjustmentsDict={2018: 1.012, 2019: 1.023, 2020: 1.0145, 2021: 1.03, 2022: 1.08})
-df = controller.upsample(df, frequency="20T", method="spline", order=3)
+controller = Controller()
+controller.loadMainParams("inputParams.json", "./synthDataGen/settings/")
+df = controller.getDataFromSource(initialYear=2018, initDatetime=datetime(2023, 6, 5, 7, 0), hoursAhead=6)
 
-df = controller.downsample(df, frequency="2.5H", aggregationFunc="mean")
+# DataFrame adjustments
+adjustments = Adjustments(controller.inputJSON)
+df = adjustments.performAnualAdjustments(df, adjustmentsDict={2018: 1.2, 2019: 2.3, 2020: 1.45, 2021: 3, 2022: 8})
+
+# Up/down sampling
+df = adjustments.upsample(df, frequency="20T", method="spline", order=3)
+df = adjustments.downsample(df, frequency="2.5H", aggregationFunc="mean")
+
+# Samples generation
+sampling = Sampling(controller.inputJSON)
+df = sampling.getSamples(df, 1000, "truncnorm")
 ```
