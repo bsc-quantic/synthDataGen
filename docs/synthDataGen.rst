@@ -4,10 +4,10 @@ synthDataGen package
 Submodules
 ----------
 
-synthDataGen.controller module
+synthDataGen.base module
 ------------------------------
 
-.. autoclass:: synthDataGen.controller.Controller
+.. autoclass:: synthDataGen.base.Controller
 
    Methods
    -------
@@ -15,7 +15,7 @@ synthDataGen.controller module
    .. automethod:: loadMainParams
    .. automethod:: getDataFromSource
 
-.. autoclass:: synthDataGen.controller.AdjustmentController
+.. autoclass:: synthDataGen.base.Adjustments
 
    Methods
    -------
@@ -24,12 +24,12 @@ synthDataGen.controller module
    .. automethod:: upsample
    .. automethod:: downsample
 
-.. autoclass:: synthDataGen.controller.Sampling
+.. autoclass:: synthDataGen.base.Sampling
 
    Methods
    -------
    
-   .. automethod:: getSamples_truncNorm
+   .. automethod:: getSamples
    
 
 Module contents

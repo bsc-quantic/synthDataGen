@@ -10,12 +10,12 @@ While the first approach is the more straighforward one, where the user just app
 
 ## Examples
 
-## Input parameters file approach
+### Input parameters file approach
 
 The following examples have been included and extended in the fullExample.ipynb in ./notebooks.
 
 ```
-from synthDataGen.controller import Controller, Adjustments, Sampling
+from synthDataGen.base import Controller, Adjustments, Sampling
 
 controller = Controller()
 controller.loadMainParams("inputParams.json", "./synthDataGen/settings/")
@@ -34,10 +34,10 @@ sampling = Sampling(controller.inputJSON)
 df = sampling.getSamples(df)
 ```
 
-## Arguments passing
+### Arguments passing
 
 ```
-from synthDataGen.controller import Controller, Adjustments, Sampling
+from synthDataGen.base import Controller, Adjustments, Sampling
 
 from datetime import datetime
 
