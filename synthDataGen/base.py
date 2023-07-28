@@ -48,10 +48,10 @@ class Controller:
 
     def _parseMainData(self, data):
         # Basic parameters
-        self._initialYear: int = data["initialYear"] 
-        self._hoursAhead: int = data["hoursAhead"]
+        self._initialYear: int = data["loadDataParams"]["initialYear"] 
+        self._hoursAhead: int = data["loadDataParams"]["hoursAhead"]
         
-        self._dataSource: str = data["dataSource"]
+        self._dataSource: str = data["loadDataParams"]["dataSource"]
 
     def loadMainParams(self, paramsFileName: str, directory: str = os.getcwd()):
         """Loads the main parameters from the specified input JSON.
@@ -99,16 +99,16 @@ class Controller:
             return None
 
         def loadData(self, data: Dict):
-            self._keysFileDir: str = data["ESIOS_params"]["keysFileDir"]
-            self._keysFileName: str = data["ESIOS_params"]["keysFileName"]
+            self._keysFileDir: str = data["loadDataParams"]["ESIOS_params"]["keysFileDir"]
+            self._keysFileName: str = data["loadDataParams"]["ESIOS_params"]["keysFileName"]
 
             keysFile = os.path.join(self.keysFileDir, self.keysFileName)
             with open(keysFile, 'r') as keysJSONFile:
                 esiosKeyData = json.load(keysJSONFile)
                 self.__esiosKey = esiosKeyData["ESIOS_KEY"]    # We'll let this private
 
-            self._indicadores: List[int] = data["ESIOS_params"]["indicadores"]
-            self._time_trunc: str = data["ESIOS_params"]["time_trunc"]
+            self._indicadores: List[int] = data["loadDataParams"]["ESIOS_params"]["indicadores"]
+            self._time_trunc: str = data["loadDataParams"]["ESIOS_params"]["time_trunc"]
 
         @property
         def keysFileDir(self):
