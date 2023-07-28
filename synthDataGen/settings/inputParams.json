@@ -1,15 +1,27 @@
 {
-    "initialYear": 2007,
-    "hoursAhead": 10,
+    "loadDataParams": {
+        "initialYear": 2007,
+        "hoursAhead": 10,
 
-    "dataSource": "ESIOS",
+        "dataSourceOptions": ["ESIOS", "localDF"],
+        "dataSource": "ESIOS",
 
-    "ESIOS_params": {
-        "keysFileDir": "./synthDataGen/settings/",
-        "keysFileName": "ficheroDeClaves.json",
+        "ESIOS_params": {
+            "keysFileDir": "./synthDataGen/settings/",
+            "keysFileName": "ficheroDeClaves.json",
 
-        "indicadores": [10211],
-        "time_trunc": "hours"
+            "indicadores": [10211],
+            "time_trunc": "hours"
+        },
+
+        "localDF_params": {
+            "dataFrameDir": "./synthDataGen/tests/resources/",
+            "dataframeFileName": "exampleDF.csv"
+        },
+
+        "sourceFilters": {
+            "include29February": true
+        }
     },
     
     "adjustmentByYear": {
