@@ -1,8 +1,5 @@
 {
     "loadDataParams": {
-        "initialYear": 2007,
-        "hoursAhead": 10,
-
         "dataSourceOptions": ["ESIOS", "localDF"],
         "dataSource": "ESIOS",
 
@@ -20,6 +17,8 @@
         },
 
         "sourceFilters": {
+            "initialYear": 2007,
+            "hoursAhead": 10,
             "include29February": true
         }
     },
