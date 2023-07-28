@@ -73,6 +73,9 @@ class Controller:
             if self.dataSource == "ESIOS":
                 self._dataInstance = self.ESIOSController()
                 self._dataInstance.loadData(self._inputJSON)
+            elif self.dataSource == "localDF":
+                self._dataInstance = self.LocalDFController()
+                self._dataInstance.loadData(self._inputJSON)
             else:
                 raise ValueError("UNKNOWN DATA SOURCE " + self.dataSource)
 
@@ -175,6 +178,52 @@ class Controller:
 
             return df
     
+    class LocalDFController():
+
+        def __init__(self):
+            return None
+
+        def loadData(self, data: Dict):
+            self._dataFrameDir: str = data["loadDataParams"]["localDF_params"]["dataFrameDir"]
+            self._dataframeFileName: str = data["loadDataParams"]["localDF_params"]["dataframeFileName"]
+
+            self._indexColumnName: str = data["loadDataParams"]["localDF_params"]["indexColumnName"]
+
+        @property
+        def dataFrameDir(self):
+            return self._dataFrameDir
+        
+        @property
+        def dataframeFileName(self):
+            return self._dataframeFileName
+        
+        @property
+        def indexColumnName(self):
+            return self._indexColumnName
+
+        @dataFrameDir.setter
+        def dataFrameDir(self, new_dataFrameDir: str):
+            self._dataFrameDir = new_dataFrameDir
+        
+        @dataframeFileName.setter
+        def dataframeFileName(self, new_dataframeFileName: str):
+            self._dataframeFileName = new_dataframeFileName
+
+        @indexColumnName.setter
+        def indexColumnName(self, new_indexColumnName: str):
+            self._indexColumnName = new_indexColumnName
+        
+        def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
+            if not initialYear: initialYear = self.initialYear
+            if not hoursAhead: hoursAhead = self.hoursAhead
+
+            dataframeFileStr: str = os.path.join(self._dataFrameDir, self._dataframeFileName)
+
+            df = pd.read_csv(dataframeFileStr, index_col = self.indexColumnName)
+            df.index = pd.to_datetime(df.index)
+
+            # Filter out the non-required data by the initialYear, initDatetime and hoursAhead
+            
 
 class Adjustments():
 

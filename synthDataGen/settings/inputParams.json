@@ -1,7 +1,7 @@
 {
     "loadDataParams": {
         "dataSourceOptions": ["ESIOS", "localDF"],
-        "dataSource": "ESIOS",
+        "dataSource": "localDF",
 
         "ESIOS_params": {
             "keysFileDir": "./synthDataGen/settings/",
@@ -13,7 +13,8 @@
 
         "localDF_params": {
             "dataFrameDir": "./synthDataGen/tests/resources/",
-            "dataframeFileName": "exampleDF.csv"
+            "dataframeFileName": "exampleDF.csv",
+            "indexColumnName": "datetimeStr"
         },
 
         "sourceFilters": {

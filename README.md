@@ -10,12 +10,12 @@ While the first approach is the more straighforward one, where the user just app
 
 ## Input parameters file explanation
 
-The following steps are applied when the Controller.getDataFromSource() method is called:
+The following steps are applied when the `Controller.getDataFromSource()` method is called:
 
-1. Depending on the 'dataSource' field value, the corresponding attributes are expected to be specified in the corresponding nested dictionary.
+1. Depending on the 'dataSource' field value, the corresponding attributes are expected to be specified in the corresponding nested dictionary in the inputParams.json file.
     - "ESIOS": the fields for the access token, the particular indicators and the granularity for the data to be requested.
-    - "LocalDF": the directory and name of the CSV file containing the DataFrame to be loaded.
-2. The filters in 'sourceFilters' are either used to get the data from the origin or the filter it afterwards. All in all, the resulting DataFrame will start from an 'initialYear', and consider from the 'initialDatetime' parameter (default value: 'now') a number of 'hoursAhead'.
+    - "LocalDF": the directory and name of the CSV file containing the DataFrame to be loaded, and the name of the column to be used as a Datetime index.
+2. The filters in 'sourceFilters' are either used to get the data from the origin or the filter it afterwards. All in all, the resulting DataFrame will start from an 'initialYear', and consider from the 'initialDatetime' parameter (default value: 'now') a number of 'hoursAhead'. These parameters, unlike those in the previous step, can be specified in the inputParams.json file, as well as passed by parameter to this method.
 
 ## Examples
 
