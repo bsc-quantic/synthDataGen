@@ -48,8 +48,8 @@ class Controller:
 
     def _parseMainData(self, data):
         # Basic parameters
-        self._initialYear: int = data["loadDataParams"]["initialYear"] 
-        self._hoursAhead: int = data["loadDataParams"]["hoursAhead"]
+        self._initialYear: int = data["loadDataParams"]["sourceFilters"]["initialYear"] 
+        self._hoursAhead: int = data["loadDataParams"]["sourceFilters"]["hoursAhead"]
         
         self._dataSource: str = data["loadDataParams"]["dataSource"]
 
