@@ -1,7 +1,7 @@
 {
     "loadDataParams": {
         "dataSourceOptions": ["ESIOS", "localDF"],
-        "dataSource": "ESIOS",
+        "dataSource": "localDF",
 
         "ESIOS_params": {
             "keysFileDir": "./synthDataGen/settings/",
@@ -13,7 +13,9 @@
 
         "localDF_params": {
             "dataFrameDir": "./synthDataGen/tests/resources/",
-            "dataframeFileName": "exampleDF.csv"
+            "dataframeFileName": "Puertollano_Horario_2015-07-01 to 2022-12-31.csv",
+
+            "indexColumnName": "datetime"
         },
 
         "sourceFilters": {
