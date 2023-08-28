@@ -23,6 +23,10 @@ class Controller:
         return self._hoursAhead
     
     @property
+    def dataSourceOptions(self):
+        return self._dataSourceOptions
+
+    @property
     def dataSource(self):
         return self._dataSource
 
@@ -38,6 +42,10 @@ class Controller:
     def hoursAhead(self, new_hoursAhead: str):
         self._hoursAhead = new_hoursAhead
 
+    @dataSourceOptions.setter
+    def dataSourceOptions(self, new_dataSourceOptions: str):
+        self._dataSourceOptions = new_dataSourceOptions
+
     @dataSource.setter
     def dataSource(self, new_dataSource: str):
         self._dataSource = new_dataSource
@@ -51,6 +59,7 @@ class Controller:
         self._initialYear: int = data["loadDataParams"]["sourceFilters"]["initialYear"] 
         self._hoursAhead: int = data["loadDataParams"]["sourceFilters"]["hoursAhead"]
         
+        self._dataSourceOptions: List[str] = data["loadDataParams"]["dataSourceOptions"]
         self._dataSource: str = data["loadDataParams"]["dataSource"]
 
     def loadMainParams(self, paramsFileName: str, directory: str = os.getcwd()):
@@ -70,11 +79,15 @@ class Controller:
 
             self._parseMainData(self._inputJSON)
 
-            if self.dataSource == "ESIOS":
+            if self.dataSource not in self.dataSourceOptions:
+                raise ValueError("UNKNOWN DATA SOURCE '" + self.dataSource + "'")
+            elif self.dataSource == "ESIOS":
                 self._dataInstance = self.ESIOSController()
                 self._dataInstance.loadData(self._inputJSON)
-            else:
-                raise ValueError("UNKNOWN DATA SOURCE " + self.dataSource)
+            elif self.dataSource == "localDF":
+                self._dataInstance = self.LocalDFController()
+                self._dataInstance.loadData(self._inputJSON)
+                
 
     def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
         """Get the data from source considering the specified parameters. 
@@ -175,6 +188,51 @@ class Controller:
 
             return df
     
+    class LocalDFController():
+
+        def __init__(self):
+            return None
+
+        def loadData(self, data: Dict):
+            self._dataFrameDir: str = data["loadDataParams"]["localDF_params"]["dataFrameDir"]
+            self._dataframeFileName: str = data["loadDataParams"]["localDF_params"]["dataframeFileName"]
+
+            self._dataFrameFile: str = os.path.join(self.dataFrameDir, self.dataframeFileName)
+
+            self._indexColumnName: str = data["loadDataParams"]["localDF_params"]["indexColumnName"]
+
+        @property
+        def dataFrameDir(self):
+            return self._dataFrameDir
+
+        @property
+        def dataframeFileName(self):
+            return self._dataframeFileName
+
+        @property
+        def dataFrameFile(self):
+            return self._dataFrameFile
+        
+        @property
+        def indexColumnName(self):
+            return self._indexColumnName
+
+        @dataFrameDir.setter
+        def dataFrameDir(self, new_dataFrameDir: str):
+            self._dataFrameDir = new_dataFrameDir
+
+        @dataframeFileName.setter
+        def dataframeFileName(self, new_dataframeFileName: str):
+            self._dataframeFileName = new_dataframeFileName
+        
+        @dataFrameFile.setter
+        def dataFrameFile(self, new_dataFrameFile: str):
+            self._dataFrameFile = new_dataFrameFile
+        
+        @indexColumnName.setter
+        def indexColumnName(self, new_indexColumnName: str):
+            self._indexColumnName = new_indexColumnName
+
 
 class Adjustments():
 
