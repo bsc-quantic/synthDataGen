@@ -212,6 +212,8 @@ class Controller:
 
             self._dataFrameFile: str = os.path.join(self.dataFrameDir, self.dataframeFileName)
 
+            self._skipFirstColumn: bool = data["loadDataParams"]["localDF_params"]["skipFirstColumn"]
+
             self._indexColumnName: str = data["loadDataParams"]["localDF_params"]["indexColumnName"]
             self._indexFormat: str = data["loadDataParams"]["localDF_params"]["indexFormat"]
 
@@ -226,6 +228,10 @@ class Controller:
         @property
         def dataFrameFile(self):
             return self._dataFrameFile
+        
+        @property
+        def skipFirstColumn(self):
+            return self._skipFirstColumn
         
         @property
         def indexColumnName(self):
@@ -246,6 +252,10 @@ class Controller:
         @dataFrameFile.setter
         def dataFrameFile(self, new_dataFrameFile: str):
             self._dataFrameFile = new_dataFrameFile
+
+        @skipFirstColumn.setter
+        def skipFirstColumn(self, new_skipFirstColumn: str):
+            self._skipFirstColumn = new_skipFirstColumn
         
         @indexColumnName.setter
         def indexColumnName(self, new_indexColumnName: str):
@@ -263,9 +273,9 @@ class Controller:
 
             # ToDo: load a list of desired columns to be delete, the remaining ones should be removed from the df like this:
             #raw_data = raw_data.drop(['Unnamed: 0'], axis=1)
-            # ToDo: add a parameter in the inputParams.json that determines whether there is a first column for row index (that should be discarded)
-            
-            # ToDo: check if the 29th february filter is working or not
+
+            if self.skipFirstColumn:
+                df = df.iloc[:, 1:]
 
             df = df.rename(columns = {self.indexColumnName: 'indexAuxColumn'})
             df[self.indexColumnName] = pd.to_datetime(df['indexAuxColumn'], format = self.indexFormat)
