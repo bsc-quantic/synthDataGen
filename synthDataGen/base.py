@@ -23,6 +23,10 @@ class Controller:
         return self._hoursAhead
     
     @property
+    def include29February(self):
+        return self._include29February
+
+    @property
     def dataSourceOptions(self):
         return self._dataSourceOptions
 
@@ -42,6 +46,10 @@ class Controller:
     def hoursAhead(self, new_hoursAhead: str):
         self._hoursAhead = new_hoursAhead
 
+    @include29February.setter
+    def include29February(self, new_include29February: str):
+        self._include29February = new_include29February
+
     @dataSourceOptions.setter
     def dataSourceOptions(self, new_dataSourceOptions: str):
         self._dataSourceOptions = new_dataSourceOptions
@@ -58,6 +66,7 @@ class Controller:
         # Basic parameters
         self._initialYear: int = data["loadDataParams"]["sourceFilters"]["initialYear"] 
         self._hoursAhead: int = data["loadDataParams"]["sourceFilters"]["hoursAhead"]
+        self._include29February: bool = data["loadDataParams"]["sourceFilters"]["include29February"]
         
         self._dataSourceOptions: List[str] = data["loadDataParams"]["dataSourceOptions"]
         self._dataSource: str = data["loadDataParams"]["dataSource"]
@@ -87,7 +96,6 @@ class Controller:
             elif self.dataSource == "localDF":
                 self._dataInstance = self.LocalDFController()
                 self._dataInstance.loadData(self._inputJSON)
-                
 
     def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
         """Get the data from source considering the specified parameters. 
@@ -102,7 +110,12 @@ class Controller:
         if not initialYear: initialYear = self.initialYear
         if not hoursAhead: hoursAhead = self.hoursAhead
 
-        return self._dataInstance.getDataFromSource(initialYear, initDatetime, hoursAhead)
+        df: pd.DataFrame = self._dataInstance.getDataFromSource(initialYear, initDatetime, hoursAhead)
+
+        if not self.include29February:
+            df = df[~((df.index.month == 2) & (df.index.day == 29))]
+
+        return df
 
     class ESIOSController():
 
@@ -200,6 +213,7 @@ class Controller:
             self._dataFrameFile: str = os.path.join(self.dataFrameDir, self.dataframeFileName)
 
             self._indexColumnName: str = data["loadDataParams"]["localDF_params"]["indexColumnName"]
+            self._indexFormat: str = data["loadDataParams"]["localDF_params"]["indexFormat"]
 
         @property
         def dataFrameDir(self):
@@ -216,6 +230,10 @@ class Controller:
         @property
         def indexColumnName(self):
             return self._indexColumnName
+        
+        @property
+        def indexFormat(self):
+            return self._indexFormat 
 
         @dataFrameDir.setter
         def dataFrameDir(self, new_dataFrameDir: str):
@@ -233,6 +251,28 @@ class Controller:
         def indexColumnName(self, new_indexColumnName: str):
             self._indexColumnName = new_indexColumnName
 
+        @indexFormat.setter
+        def indexFormat(self, new_indexFormat: str):
+            self._indexFormat = new_indexFormat
+
+        def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
+            if not initialYear: initialYear = self.initialYear
+            if not hoursAhead: hoursAhead = self.hoursAhead
+
+            df = pd.read_csv(self.dataFrameFile)
+
+            # ToDo: load a list of desired columns to be delete, the remaining ones should be removed from the df like this:
+            #raw_data = raw_data.drop(['Unnamed: 0'], axis=1)
+            # ToDo: add a parameter in the inputParams.json that determines whether there is a first column for row index (that should be discarded)
+            
+            # ToDo: check if the 29th february filter is working or not
+
+            df = df.rename(columns = {self.indexColumnName: 'indexAuxColumn'})
+            df[self.indexColumnName] = pd.to_datetime(df['indexAuxColumn'], format = self.indexFormat)
+            df = df.set_index(self.indexColumnName)
+            df = df.drop('indexAuxColumn', axis = 1)
+
+            return df
 
 class Adjustments():
 

@@ -15,13 +15,14 @@
             "dataFrameDir": "./synthDataGen/tests/resources/",
             "dataframeFileName": "Puertollano_Horario_2015-07-01 to 2022-12-31.csv",
 
-            "indexColumnName": "datetime"
+            "indexColumnName": "datetime",
+            "indexFormat": "%Y-%m-%dT%H:%M:%S"
         },
 
         "sourceFilters": {
             "initialYear": 2007,
             "hoursAhead": 10,
-            "include29February": true
+            "include29February": false
         }
     },
     
