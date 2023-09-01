@@ -15,10 +15,11 @@
             "dataFrameDir": "./synthDataGen/tests/resources/",
             "dataframeFileName": "Puertollano_Horario_2015-07-01 to 2022-12-31.csv",
 
+            "columnsToAnalyze": ["windspeed"],
             "skipFirstColumn": true,
 
-            "indexColumnName": "datetime",
-            "indexFormat": "%Y-%m-%dT%H:%M:%S"
+            "datetimeColumnName": "datetime",
+            "datetimeFormat": "%Y-%m-%dT%H:%M:%S"
         },
 
         "sourceFilters": {

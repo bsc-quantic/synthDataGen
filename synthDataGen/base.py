@@ -112,8 +112,8 @@ class Controller:
 
         df: pd.DataFrame = self._dataInstance.getDataFromSource(initialYear, initDatetime, hoursAhead)
 
-        if not self.include29February:
-            df = df[~((df.index.month == 2) & (df.index.day == 29))]
+        # if not self.include29February:
+        #     df = df[~((df.index.month == 2) & (df.index.day == 29))]
 
         return df
 
@@ -212,10 +212,11 @@ class Controller:
 
             self._dataFrameFile: str = os.path.join(self.dataFrameDir, self.dataframeFileName)
 
+            self._columnsToAnalyze: List[str] = data["loadDataParams"]["localDF_params"]["columnsToAnalyze"]
             self._skipFirstColumn: bool = data["loadDataParams"]["localDF_params"]["skipFirstColumn"]
 
-            self._indexColumnName: str = data["loadDataParams"]["localDF_params"]["indexColumnName"]
-            self._indexFormat: str = data["loadDataParams"]["localDF_params"]["indexFormat"]
+            self._datetimeColumnName: str = data["loadDataParams"]["localDF_params"]["datetimeColumnName"]
+            self._datetimeFormat: str = data["loadDataParams"]["localDF_params"]["datetimeFormat"]
 
         @property
         def dataFrameDir(self):
@@ -234,12 +235,16 @@ class Controller:
             return self._skipFirstColumn
         
         @property
-        def indexColumnName(self):
-            return self._indexColumnName
+        def columnsToAnalyze(self):
+            return self._columnsToAnalyze
+
+        @property
+        def datetimeColumnName(self):
+            return self._datetimeColumnName
         
         @property
-        def indexFormat(self):
-            return self._indexFormat 
+        def datetimeFormat(self):
+            return self._datetimeFormat 
 
         @dataFrameDir.setter
         def dataFrameDir(self, new_dataFrameDir: str):
@@ -256,14 +261,18 @@ class Controller:
         @skipFirstColumn.setter
         def skipFirstColumn(self, new_skipFirstColumn: str):
             self._skipFirstColumn = new_skipFirstColumn
-        
-        @indexColumnName.setter
-        def indexColumnName(self, new_indexColumnName: str):
-            self._indexColumnName = new_indexColumnName
 
-        @indexFormat.setter
-        def indexFormat(self, new_indexFormat: str):
-            self._indexFormat = new_indexFormat
+        @columnsToAnalyze.setter
+        def columnsToAnalyze(self, new_columnsToAnalyze: str):
+            self._columnsToAnalyze = new_columnsToAnalyze
+        
+        @datetimeColumnName.setter
+        def datetimeColumnName(self, new_datetimeColumnName: str):
+            self._datetimeColumnName = new_datetimeColumnName
+
+        @datetimeFormat.setter
+        def datetimeFormat(self, new_datetimeFormat: str):
+            self._datetimeFormat = new_datetimeFormat
 
         def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
             if not initialYear: initialYear = self.initialYear
@@ -271,16 +280,21 @@ class Controller:
 
             df = pd.read_csv(self.dataFrameFile)
 
-            # ToDo: load a list of desired columns to be delete, the remaining ones should be removed from the df like this:
-            #raw_data = raw_data.drop(['Unnamed: 0'], axis=1)
-
             if self.skipFirstColumn:
                 df = df.iloc[:, 1:]
 
-            df = df.rename(columns = {self.indexColumnName: 'indexAuxColumn'})
-            df[self.indexColumnName] = pd.to_datetime(df['indexAuxColumn'], format = self.indexFormat)
-            df = df.set_index(self.indexColumnName)
-            df = df.drop('indexAuxColumn', axis = 1)
+            df[self.datetimeColumnName] = pd.to_datetime(df[self.datetimeColumnName], format = self.datetimeFormat)
+            df["time"] = df[self.datetimeColumnName].dt.strftime("%m-%d %H:%M:%S")
+            df["year"] = df[self.datetimeColumnName].dt.year
+
+            df.set_index(self.datetimeColumnName, inplace = True)
+
+            dataframesByYear: Dict = {}
+
+            years = list(set(df["year"])).sort()
+            for year in years:
+                dataframe = df[df["year"] == year][[self.columnsToAnalyze]]
+                dataframesByYear[str(year)] = dataframe
 
             return df
 
