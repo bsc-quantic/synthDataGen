@@ -370,18 +370,28 @@ class Adjustments():
     def downsampling_aggregationFunc(self, new_downsampling_aggregationFunc: str):
         self._downsampling_aggregationFunc = new_downsampling_aggregationFunc
 
-    def _checkDataFrameContiguity(self, df: pd.DataFrame):
-        years: List = list(df.columns)
+    def _getListOfYears(self, df: pd.DataFrame) -> List[str]:
+        columnNames: List = list(df.columns)
+        
+        years: List = []
+        for columnName in columnNames:
+            reSult = re.match("^[a-zA-Z]*(\d{4})$", columnName)
 
+            if reSult and int(reSult.group(1)) not in years:
+                years.append(int(reSult.group(1)))
+            
+        return years
+
+    def _checkDataFrameContiguity(self, years: List[int]):
         if not sorted(years) == list(range(min(years), max(years) + 1)):
             raise ValueError("Not valid DataFrame. Years (column indices) MUST be continguous.")
 
-    def _checkAdjustmentsDict(self, initialYear: int, adjustmentsDict: Dict):
+    def _checkAdjustmentsDict(self, years: List[int], adjustmentsDict: Dict):
         if not all(isinstance(element, int) for element in adjustmentsDict.keys()):
             raise ValueError("Not valid 'adjustmentsDict'. All values in it MUST be integers.")
 
         years_adjustmentsDict: List = sorted([year for year in adjustmentsDict.keys()])
-        years_fromInitialYear: List = sorted([year for year in range(initialYear, datetime.now().year)])
+        years_fromInitialYear: List = sorted([year for year in range(min(years), datetime.now().year)])
 
         if years_adjustmentsDict != years_fromInitialYear:
             raise ValueError("Not valid adjustments dictionary. It MUST contain an entry for every year since the first year in the provided DataFrame.")
@@ -397,8 +407,10 @@ class Adjustments():
 
         if not adjustmentsDict: adjustmentsDict = self.adjustmentByYear
 
-        self._checkDataFrameContiguity(df)
-        self._checkAdjustmentsDict(min(df.columns), adjustmentsDict)
+        years: List[str] = self._getListOfYears(df)
+
+        self._checkDataFrameContiguity(years)
+        self._checkAdjustmentsDict(years, adjustmentsDict)
 
         for element in df.columns:
             df[element] = df[element] * (1 + adjustmentsDict[element] / 100)
