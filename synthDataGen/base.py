@@ -274,6 +274,25 @@ class Controller:
         def datetimeFormat(self, new_datetimeFormat: str):
             self._datetimeFormat = new_datetimeFormat
 
+        def __createDateColumns(self, df: pd.DataFrame):
+            df[self.datetimeColumnName] = pd.to_datetime(df[self.datetimeColumnName], format = self.datetimeFormat)
+            df["dateNoYear"] = df[self.datetimeColumnName].dt.strftime("%m-%d %H:%M:%S")
+            df["year"] = df[self.datetimeColumnName].dt.year
+
+            df.set_index("dateNoYear", inplace = True)
+
+        def __rearrangeDFByYear(self, df: pd.DataFrame) -> pd.DataFrame:
+            years = list(set(df["year"]));  years.sort()
+
+            resultDF = pd.DataFrame()
+            for year in years:
+                dataframe = df[df["year"] == year][self.columnsToAnalyze]                
+                dataframe = dataframe.rename(columns = {str(column):str(column) + str(year) for column in self.columnsToAnalyze})
+
+                resultDF = pd.merge(resultDF, dataframe, left_index = True, right_index = True, how = "outer")
+
+            return resultDF
+
         def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
             if not initialYear: initialYear = self.initialYear
             if not hoursAhead: hoursAhead = self.hoursAhead
@@ -283,20 +302,9 @@ class Controller:
             if self.skipFirstColumn:
                 df = df.iloc[:, 1:]
 
-            df[self.datetimeColumnName] = pd.to_datetime(df[self.datetimeColumnName], format = self.datetimeFormat)
-            df["time"] = df[self.datetimeColumnName].dt.strftime("%m-%d %H:%M:%S")
-            df["year"] = df[self.datetimeColumnName].dt.year
+            self.__createDateColumns(df)
+            return self.__rearrangeDFByYear(df)
 
-            df.set_index(self.datetimeColumnName, inplace = True)
-
-            dataframesByYear: Dict = {}
-
-            years = list(set(df["year"])).sort()
-            for year in years:
-                dataframe = df[df["year"] == year][[self.columnsToAnalyze]]
-                dataframesByYear[str(year)] = dataframe
-
-            return df
 
 class Adjustments():
 
