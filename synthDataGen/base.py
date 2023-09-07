@@ -370,15 +370,23 @@ class Adjustments():
     def downsampling_aggregationFunc(self, new_downsampling_aggregationFunc: str):
         self._downsampling_aggregationFunc = new_downsampling_aggregationFunc
 
+    def _extractYearFromStr(self, literal: str | int) -> int:
+        reSult = re.match("^[a-zA-Z]*(\d{4})$", str(literal))
+
+        if reSult:
+            return int(reSult.group(1))
+        else:
+            raise Exception("Unable to extract year from literal '" + literal + "'.")
+
     def _getListOfYears(self, df: pd.DataFrame) -> List[str]:
         columnNames: List = list(df.columns)
         
         years: List = []
         for columnName in columnNames:
-            reSult = re.match("^[a-zA-Z]*(\d{4})$", columnName)
+            year = self._extractYearFromStr(columnName)
 
-            if reSult and int(reSult.group(1)) not in years:
-                years.append(int(reSult.group(1)))
+            if year not in years:
+                years.append(year)
             
         return years
 
@@ -390,11 +398,13 @@ class Adjustments():
         if not all(isinstance(element, int) for element in adjustmentsDict.keys()):
             raise ValueError("Not valid 'adjustmentsDict'. All values in it MUST be integers.")
 
-        years_adjustmentsDict: List = sorted([year for year in adjustmentsDict.keys()])
-        years_fromInitialYear: List = sorted([year for year in range(min(years), datetime.now().year)])
+        missingYears: List[int] = []
+        for year in years:
+            if year not in adjustmentsDict:
+                missingYears.append(year)
 
-        if years_adjustmentsDict != years_fromInitialYear:
-            raise ValueError("Not valid adjustments dictionary. It MUST contain an entry for every year since the first year in the provided DataFrame.")
+        if missingYears:
+            raise ValueError("Not valid adjustments dictionary. Missing entry for years: " + ','.join(map(str, missingYears)))
 
     def performAnualAdjustments(self, df: pd.DataFrame, adjustmentsDict: Dict = None) -> pd.DataFrame:
         """Performs an anual adjustments on the current dataframe with the provided dictionary.
@@ -413,7 +423,9 @@ class Adjustments():
         self._checkAdjustmentsDict(years, adjustmentsDict)
 
         for element in df.columns:
-            df[element] = df[element] * (1 + adjustmentsDict[element] / 100)
+            year = self._extractYearFromStr(element)
+
+            df[element] = df[element] * (1 + adjustmentsDict[year] / 100)
         
         return df
     
