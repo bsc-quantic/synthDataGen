@@ -2,9 +2,10 @@ import os
 import json
 import re
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Set
 
 import pandas as pd
+import numpy as np
 from scipy.stats import truncnorm
 from datetime import datetime, timedelta
 
@@ -97,6 +98,19 @@ class Controller:
                 self._dataInstance = self.LocalDFController()
                 self._dataInstance.loadData(self._inputJSON)
 
+    def __filter29February(self, df: pd.DataFrame) -> pd.DataFrame:
+        if not self.include29February:
+            if self._dataSource == "localDF":
+                df = df.rename({str(entry):"2024" + "-" + str(entry) for entry in df.index})      # This mental retardation is for pandas to not check the February 29th when parsing the index to datetime
+                df.index = pd.to_datetime(df.index)
+
+            df = df[~((df.index.month == 2) & (df.index.day == 29))]
+
+            if len(set(df.index.year)) == 1:
+                df.index = df.index + pd.offsets.DateOffset(years = 2023 - df.index.year[1])
+
+            return df
+
     def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
         """Get the data from source considering the specified parameters. 
         If some parameter is not provided, the one from the input file is used by default.
@@ -112,8 +126,7 @@ class Controller:
 
         df: pd.DataFrame = self._dataInstance.getDataFromSource(initialYear, initDatetime, hoursAhead)
 
-        # if not self.include29February:
-        #     df = df[~((df.index.month == 2) & (df.index.day == 29))]
+        df = self.__filter29February(df)
 
         return df
 
@@ -276,6 +289,8 @@ class Controller:
 
         def __createDateColumns(self, df: pd.DataFrame):
             df[self.datetimeColumnName] = pd.to_datetime(df[self.datetimeColumnName], format = self.datetimeFormat)
+            df.drop_duplicates(subset = [self.datetimeColumnName], inplace = True)
+
             df["dateNoYear"] = df[self.datetimeColumnName].dt.strftime("%m-%d %H:%M:%S")
             df["year"] = df[self.datetimeColumnName].dt.year
 
@@ -291,7 +306,7 @@ class Controller:
 
                 resultDF = pd.merge(resultDF, dataframe, left_index = True, right_index = True, how = "outer")
 
-            resultDF = resultDF.rename({str(entry):str(datetime.now().year) + "-" + str(entry) for entry in resultDF.index})
+            # resultDF = resultDF.rename({str(entry):str(datetime.now().year) + "-" + str(entry) for entry in resultDF.index})
 
             return resultDF
 
@@ -435,7 +450,13 @@ class Adjustments():
         if not re.match("\d+(\.\d+)?[DHTS]", frequency):
             raise ValueError("Frequency '" + frequency + "' not valid. It should be an integer followed by a unit ('D': daily, 'H': hourly, 'T': minutely, 'S': secondly). E.g. \"2T\" == and entry for every 2 minutes.")
 
-    def _getFreqNormalized(self, frequency: str) -> str:
+    def _getFreqNormalized(self, dfIndex) -> str:
+        frequency = pd.infer_freq(dfIndex)
+        if not frequency:
+            possibleFreqs: Set = set(np.diff(dfIndex))
+            for freq in possibleFreqs:
+                if freq > 0: frequency = pd.tseries.frequencies.to_offset(pd.Timedelta(freq)).freqstr
+
         reSult = re.match("([DHTS])", frequency)
         if reSult:
             return "1" + str(reSult.group(1))
@@ -443,7 +464,7 @@ class Adjustments():
         return frequency
 
     def _checkCoarserDFResolution(self, df: pd.DataFrame, frequency: str):
-        dfFreq: str = self._getFreqNormalized(pd.infer_freq(df.index))
+        dfFreq: str = self._getFreqNormalized(df.index)
         
         dfDelta: pd.Timedelta = pd.Timedelta(dfFreq)
         freqDelta: pd.Timedelta = pd.Timedelta(frequency)
@@ -482,7 +503,7 @@ class Adjustments():
             raise ValueError("Interpolation method '" + method + "' not implemented. Please choose some: " + ', '.join(acceptedInterpolationMethods) + ".")
         
     def _checkFinerDFResolution(self, df: pd.DataFrame, frequency: str):
-        dfFreq: str = self._getFreqNormalized(pd.infer_freq(df.index))
+        dfFreq: str = self._getFreqNormalized(df.index)
         
         dfDelta: pd.Timedelta = pd.Timedelta(dfFreq)
         freqDelta: pd.Timedelta = pd.Timedelta(frequency)
