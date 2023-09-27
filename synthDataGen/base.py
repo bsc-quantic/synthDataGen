@@ -212,7 +212,7 @@ class Controller:
 
             self._dataFrameFile: str = os.path.join(self.dataFrameDir, self.dataframeFileName)
 
-            self._columnsToAnalyze: List[str] = data["loadDataParams"]["localDF_params"]["columnsToAnalyze"]
+            self._columnToAnalyze: str = data["loadDataParams"]["localDF_params"]["columnToAnalyze"]
             self._skipFirstColumn: bool = data["loadDataParams"]["localDF_params"]["skipFirstColumn"]
 
             self._datetimeColumnName: str = data["loadDataParams"]["localDF_params"]["datetimeColumnName"]
@@ -235,8 +235,8 @@ class Controller:
             return self._skipFirstColumn
         
         @property
-        def columnsToAnalyze(self):
-            return self._columnsToAnalyze
+        def columnToAnalyze(self):
+            return self._columnToAnalyze
 
         @property
         def datetimeColumnName(self):
@@ -262,9 +262,9 @@ class Controller:
         def skipFirstColumn(self, new_skipFirstColumn: str):
             self._skipFirstColumn = new_skipFirstColumn
 
-        @columnsToAnalyze.setter
-        def columnsToAnalyze(self, new_columnsToAnalyze: str):
-            self._columnsToAnalyze = new_columnsToAnalyze
+        @columnToAnalyze.setter
+        def columnToAnalyze(self, new_columnToAnalyze: str):
+            self._columnToAnalyze = new_columnToAnalyze
         
         @datetimeColumnName.setter
         def datetimeColumnName(self, new_datetimeColumnName: str):
@@ -286,10 +286,12 @@ class Controller:
 
             resultDF = pd.DataFrame()
             for year in years:
-                dataframe = df[df["year"] == year][self.columnsToAnalyze]                
-                dataframe = dataframe.rename(columns = {str(column):str(column) + str(year) for column in self.columnsToAnalyze})
+                dataframe = pd.Series.to_frame(df[df["year"] == year][self.columnToAnalyze])
+                dataframe = dataframe.rename(columns = {str(self.columnToAnalyze):str(year)})
 
                 resultDF = pd.merge(resultDF, dataframe, left_index = True, right_index = True, how = "outer")
+
+            resultDF = resultDF.rename({str(entry):str(datetime.now().year) + "-" + str(entry) for entry in resultDF.index})
 
             return resultDF
 
