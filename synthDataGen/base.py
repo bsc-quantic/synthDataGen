@@ -415,13 +415,12 @@ class Adjustments():
         if not all(isinstance(element, int) for element in adjustmentsDict.keys()):
             raise ValueError("Not valid 'adjustmentsDict'. All values in it MUST be integers.")
 
-        missingYears: List[int] = []
+        providedAdjustments: List[int] = []
         for year in years:
-            if year not in adjustmentsDict:
-                missingYears.append(year)
+            if year in adjustmentsDict:
+                providedAdjustments.append(year)
 
-        if missingYears:
-            raise ValueError("Not valid adjustments dictionary. Missing entry for years: " + ','.join(map(str, missingYears)))
+        print("Adjusting years: " + ','.join(map(str, providedAdjustments)))
 
     def performAnualAdjustments(self, df: pd.DataFrame, adjustmentsDict: Dict = None) -> pd.DataFrame:
         """Performs an anual adjustments on the current dataframe with the provided dictionary.
@@ -442,7 +441,8 @@ class Adjustments():
         for element in df.columns:
             year = self._extractYearFromStr(element)
 
-            df[element] = df[element] * (1 + adjustmentsDict[year] / 100)
+            if year in adjustmentsDict:
+                df[element] = df[element] * (1 + adjustmentsDict[year] / 100)
         
         return df
     
