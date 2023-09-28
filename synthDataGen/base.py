@@ -146,7 +146,7 @@ class Controller:
                 esiosKeyData = json.load(keysJSONFile)
                 self.__esiosKey = esiosKeyData["ESIOS_KEY"]    # We'll let this private
 
-            self._indicadores: List[int] = data["loadDataParams"]["ESIOS_params"]["indicadores"]
+            self._indicador: List[int] = data["loadDataParams"]["ESIOS_params"]["indicador"]
             self._time_trunc: str = data["loadDataParams"]["ESIOS_params"]["time_trunc"]
 
         @property
@@ -158,8 +158,8 @@ class Controller:
             return self._keysFileName
         
         @property
-        def indicadores(self):
-            return self._indicadores
+        def indicador(self):
+            return self._indicador
 
         @property
         def time_trunc(self):
@@ -173,9 +173,9 @@ class Controller:
         def keysFileName(self, new_keysFileName: str):
             self._keysFileName = new_keysFileName
 
-        @indicadores.setter
-        def indicadores(self, new_indicadores: str):
-            self._indicadores = new_indicadores
+        @indicador.setter
+        def indicador(self, new_indicador: str):
+            self._indicador = new_indicador
 
         @time_trunc.setter
         def time_trunc(self, new_time_trunc: str):
@@ -186,7 +186,7 @@ class Controller:
                                             initDatetime.month, initDatetime.day, initDatetime.hour, initDatetime.minute)
             endDate: datetime = initialDate + timedelta(hours = hoursAhead)
 
-            return esios.dataframe_lista_de_indicadores_de_esios_por_fechas(self.indicadores, 
+            return esios.dataframe_lista_de_indicadores_de_esios_por_fechas([self.indicador], 
                                                                             initialDate, endDate,
                                                                             time_trunc = self.time_trunc,
                                                                             inlcuye29DeFebrero = '').filter(["value"], axis = 1)

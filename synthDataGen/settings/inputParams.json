@@ -1,13 +1,13 @@
 {
     "loadDataParams": {
         "dataSourceOptions": ["ESIOS", "localDF"],
-        "dataSource": "localDF",
+        "dataSource": "ESIOS",
 
         "ESIOS_params": {
             "keysFileDir": "./synthDataGen/settings/",
             "keysFileName": "ficheroDeClaves.json",
 
-            "indicadores": [10211],
+            "indicador": 10211,
             "time_trunc": "hours"
         },
 
