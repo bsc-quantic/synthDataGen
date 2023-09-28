@@ -16,11 +16,11 @@ The following steps are applied when the Controller.getDataFromSource() method i
     - "ESIOS": the fields for the **access token**, the particular **indicator** and the **granularity** for the data to be requested.
     - "LocalDF": the **directory and name of the CSV file** containing the DataFrame to be loaded, the **variable name** to get (indicator), whether to **skip the first column** or not, and the **datetime format of the index column**.
 
-2. The filters in 'sourceFilters' are either used to get the data from the origin or the filter it afterwards. All in all, the resulting DataFrame will start from an **initial year**, and consider from the **initial datetime** parameter (default value: 'now') a number of **hours ahead**. Besides, whether to **discard the February 29** or not should also be specified.
+2. The **filters** in 'sourceFilters' are either used to get the data from the origin or the filter it afterwards. All in all, the resulting DataFrame will start from an **initial year**, and consider from the **initial datetime** parameter (default value: 'now') a number of **hours ahead**. Besides, whether to **discard the February 29** or not should also be specified.
 
 3. The **adjustments by year** dictionary can be used for inflation adjustment or similar. It is specified over 100, so a '10' indicate a positive adjustment of a 10%.
 
-4. In case a posterior upsampling or downsampling of the data wanted to be performed, the corresponding dictionaries are used to specify the **granularity** when running the Adjustments.upsample(pandas.Dataframe) and Adjustments.downsample(pandas.Dataframe) methods. The granularity should be an integer followed by a unit ('D': daily, 'H': hourly, 'T': minutely, 'S': secondly). E.g. \"2T\" == and entry for every 2 minutes. The **interpolation method** and the **aggregation function** for upsampling and downsampling respectively, should be specified too.
+4. In case a posterior **upsampling or downsampling** of the data wanted to be performed, the corresponding dictionaries are used to specify the **granularity** when running the Adjustments.upsample(pandas.Dataframe) and Adjustments.downsample(pandas.Dataframe) methods. The granularity should be an integer followed by a unit ('D': daily, 'H': hourly, 'T': minutely, 'S': secondly). E.g. \"2T\" == and entry for every 2 minutes. The **interpolation method** and the **aggregation function** for upsampling and downsampling respectively, should be specified too.
 
 5. Finally, for **sampling** the current data we should provide a **number of desired samples** to be generated and the **probability distribution** to consider.
 
