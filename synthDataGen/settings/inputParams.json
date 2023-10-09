@@ -7,7 +7,7 @@
             "keysFileDir": "./synthDataGen/settings/",
             "keysFileName": "ficheroDeClaves.json",
 
-            "indicadores": [10211],
+            "indicador": 10211,
             "time_trunc": "hours"
         },
 
@@ -15,10 +15,11 @@
             "dataFrameDir": "./synthDataGen/tests/resources/",
             "dataframeFileName": "Puertollano_Horario_2015-07-01 to 2022-12-31.csv",
 
+            "columnToAnalyze": "windspeed",
             "skipFirstColumn": true,
 
-            "indexColumnName": "datetime",
-            "indexFormat": "%Y-%m-%dT%H:%M:%S"
+            "datetimeColumnName": "datetime",
+            "datetimeFormat": "%Y-%m-%dT%H:%M:%S"
         },
 
         "sourceFilters": {

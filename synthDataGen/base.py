@@ -2,9 +2,10 @@ import os
 import json
 import re
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Set
 
 import pandas as pd
+import numpy as np
 from scipy.stats import truncnorm
 from datetime import datetime, timedelta
 
@@ -97,6 +98,19 @@ class Controller:
                 self._dataInstance = self.LocalDFController()
                 self._dataInstance.loadData(self._inputJSON)
 
+    def __filter29February(self, df: pd.DataFrame) -> pd.DataFrame:
+        if not self.include29February:
+            if self._dataSource == "localDF":
+                df = df.rename({str(entry):"2024" + "-" + str(entry) for entry in df.index})      # This mental retardation is for pandas to not check the February 29th when parsing the index to datetime
+                df.index = pd.to_datetime(df.index)
+
+            df = df[~((df.index.month == 2) & (df.index.day == 29))]
+
+            if len(set(df.index.year)) == 1:
+                df.index = df.index + pd.offsets.DateOffset(years = 2023 - df.index.year[1])
+
+            return df
+
     def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
         """Get the data from source considering the specified parameters. 
         If some parameter is not provided, the one from the input file is used by default.
@@ -112,8 +126,7 @@ class Controller:
 
         df: pd.DataFrame = self._dataInstance.getDataFromSource(initialYear, initDatetime, hoursAhead)
 
-        if not self.include29February:
-            df = df[~((df.index.month == 2) & (df.index.day == 29))]
+        df = self.__filter29February(df)
 
         return df
 
@@ -133,7 +146,7 @@ class Controller:
                 esiosKeyData = json.load(keysJSONFile)
                 self.__esiosKey = esiosKeyData["ESIOS_KEY"]    # We'll let this private
 
-            self._indicadores: List[int] = data["loadDataParams"]["ESIOS_params"]["indicadores"]
+            self._indicador: List[int] = data["loadDataParams"]["ESIOS_params"]["indicador"]
             self._time_trunc: str = data["loadDataParams"]["ESIOS_params"]["time_trunc"]
 
         @property
@@ -145,8 +158,8 @@ class Controller:
             return self._keysFileName
         
         @property
-        def indicadores(self):
-            return self._indicadores
+        def indicador(self):
+            return self._indicador
 
         @property
         def time_trunc(self):
@@ -160,9 +173,9 @@ class Controller:
         def keysFileName(self, new_keysFileName: str):
             self._keysFileName = new_keysFileName
 
-        @indicadores.setter
-        def indicadores(self, new_indicadores: str):
-            self._indicadores = new_indicadores
+        @indicador.setter
+        def indicador(self, new_indicador: str):
+            self._indicador = new_indicador
 
         @time_trunc.setter
         def time_trunc(self, new_time_trunc: str):
@@ -173,7 +186,7 @@ class Controller:
                                             initDatetime.month, initDatetime.day, initDatetime.hour, initDatetime.minute)
             endDate: datetime = initialDate + timedelta(hours = hoursAhead)
 
-            return esios.dataframe_lista_de_indicadores_de_esios_por_fechas(self.indicadores, 
+            return esios.dataframe_lista_de_indicadores_de_esios_por_fechas([self.indicador], 
                                                                             initialDate, endDate,
                                                                             time_trunc = self.time_trunc,
                                                                             inlcuye29DeFebrero = '').filter(["value"], axis = 1)
@@ -212,10 +225,11 @@ class Controller:
 
             self._dataFrameFile: str = os.path.join(self.dataFrameDir, self.dataframeFileName)
 
+            self._columnToAnalyze: str = data["loadDataParams"]["localDF_params"]["columnToAnalyze"]
             self._skipFirstColumn: bool = data["loadDataParams"]["localDF_params"]["skipFirstColumn"]
 
-            self._indexColumnName: str = data["loadDataParams"]["localDF_params"]["indexColumnName"]
-            self._indexFormat: str = data["loadDataParams"]["localDF_params"]["indexFormat"]
+            self._datetimeColumnName: str = data["loadDataParams"]["localDF_params"]["datetimeColumnName"]
+            self._datetimeFormat: str = data["loadDataParams"]["localDF_params"]["datetimeFormat"]
 
         @property
         def dataFrameDir(self):
@@ -234,12 +248,16 @@ class Controller:
             return self._skipFirstColumn
         
         @property
-        def indexColumnName(self):
-            return self._indexColumnName
+        def columnToAnalyze(self):
+            return self._columnToAnalyze
+
+        @property
+        def datetimeColumnName(self):
+            return self._datetimeColumnName
         
         @property
-        def indexFormat(self):
-            return self._indexFormat 
+        def datetimeFormat(self):
+            return self._datetimeFormat 
 
         @dataFrameDir.setter
         def dataFrameDir(self, new_dataFrameDir: str):
@@ -256,14 +274,41 @@ class Controller:
         @skipFirstColumn.setter
         def skipFirstColumn(self, new_skipFirstColumn: str):
             self._skipFirstColumn = new_skipFirstColumn
-        
-        @indexColumnName.setter
-        def indexColumnName(self, new_indexColumnName: str):
-            self._indexColumnName = new_indexColumnName
 
-        @indexFormat.setter
-        def indexFormat(self, new_indexFormat: str):
-            self._indexFormat = new_indexFormat
+        @columnToAnalyze.setter
+        def columnToAnalyze(self, new_columnToAnalyze: str):
+            self._columnToAnalyze = new_columnToAnalyze
+        
+        @datetimeColumnName.setter
+        def datetimeColumnName(self, new_datetimeColumnName: str):
+            self._datetimeColumnName = new_datetimeColumnName
+
+        @datetimeFormat.setter
+        def datetimeFormat(self, new_datetimeFormat: str):
+            self._datetimeFormat = new_datetimeFormat
+
+        def __createDateColumns(self, df: pd.DataFrame):
+            df[self.datetimeColumnName] = pd.to_datetime(df[self.datetimeColumnName], format = self.datetimeFormat)
+            df.drop_duplicates(subset = [self.datetimeColumnName], inplace = True)
+
+            df["dateNoYear"] = df[self.datetimeColumnName].dt.strftime("%m-%d %H:%M:%S")
+            df["year"] = df[self.datetimeColumnName].dt.year
+
+            df.set_index("dateNoYear", inplace = True)
+
+        def __rearrangeDFByYear(self, df: pd.DataFrame) -> pd.DataFrame:
+            years = list(set(df["year"]));  years.sort()
+
+            resultDF = pd.DataFrame()
+            for year in years:
+                dataframe = pd.Series.to_frame(df[df["year"] == year][self.columnToAnalyze])
+                dataframe = dataframe.rename(columns = {str(self.columnToAnalyze):str(year)})
+
+                resultDF = pd.merge(resultDF, dataframe, left_index = True, right_index = True, how = "outer")
+
+            # resultDF = resultDF.rename({str(entry):str(datetime.now().year) + "-" + str(entry) for entry in resultDF.index})
+
+            return resultDF
 
         def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
             if not initialYear: initialYear = self.initialYear
@@ -271,18 +316,12 @@ class Controller:
 
             df = pd.read_csv(self.dataFrameFile)
 
-            # ToDo: load a list of desired columns to be delete, the remaining ones should be removed from the df like this:
-            #raw_data = raw_data.drop(['Unnamed: 0'], axis=1)
-
             if self.skipFirstColumn:
                 df = df.iloc[:, 1:]
 
-            df = df.rename(columns = {self.indexColumnName: 'indexAuxColumn'})
-            df[self.indexColumnName] = pd.to_datetime(df['indexAuxColumn'], format = self.indexFormat)
-            df = df.set_index(self.indexColumnName)
-            df = df.drop('indexAuxColumn', axis = 1)
+            self.__createDateColumns(df)
+            return self.__rearrangeDFByYear(df)
 
-            return df
 
 class Adjustments():
 
@@ -348,21 +387,40 @@ class Adjustments():
     def downsampling_aggregationFunc(self, new_downsampling_aggregationFunc: str):
         self._downsampling_aggregationFunc = new_downsampling_aggregationFunc
 
-    def _checkDataFrameContiguity(self, df: pd.DataFrame):
-        years: List = list(df.columns)
+    def _extractYearFromStr(self, literal: str | int) -> int:
+        reSult = re.match("^[a-zA-Z]*(\d{4})$", str(literal))
 
+        if reSult:
+            return int(reSult.group(1))
+        else:
+            raise Exception("Unable to extract year from literal '" + literal + "'.")
+
+    def _getListOfYears(self, df: pd.DataFrame) -> List[str]:
+        columnNames: List = list(df.columns)
+        
+        years: List = []
+        for columnName in columnNames:
+            year = self._extractYearFromStr(columnName)
+
+            if year not in years:
+                years.append(year)
+            
+        return years
+
+    def _checkDataFrameContiguity(self, years: List[int]):
         if not sorted(years) == list(range(min(years), max(years) + 1)):
             raise ValueError("Not valid DataFrame. Years (column indices) MUST be continguous.")
 
-    def _checkAdjustmentsDict(self, initialYear: int, adjustmentsDict: Dict):
+    def _checkAdjustmentsDict(self, years: List[int], adjustmentsDict: Dict):
         if not all(isinstance(element, int) for element in adjustmentsDict.keys()):
             raise ValueError("Not valid 'adjustmentsDict'. All values in it MUST be integers.")
 
-        years_adjustmentsDict: List = sorted([year for year in adjustmentsDict.keys()])
-        years_fromInitialYear: List = sorted([year for year in range(initialYear, datetime.now().year)])
+        providedAdjustments: List[int] = []
+        for year in years:
+            if year in adjustmentsDict:
+                providedAdjustments.append(year)
 
-        if years_adjustmentsDict != years_fromInitialYear:
-            raise ValueError("Not valid adjustments dictionary. It MUST contain an entry for every year since the first year in the provided DataFrame.")
+        print("Adjusting years: " + ','.join(map(str, providedAdjustments)))
 
     def performAnualAdjustments(self, df: pd.DataFrame, adjustmentsDict: Dict = None) -> pd.DataFrame:
         """Performs an anual adjustments on the current dataframe with the provided dictionary.
@@ -375,11 +433,16 @@ class Adjustments():
 
         if not adjustmentsDict: adjustmentsDict = self.adjustmentByYear
 
-        self._checkDataFrameContiguity(df)
-        self._checkAdjustmentsDict(min(df.columns), adjustmentsDict)
+        years: List[str] = self._getListOfYears(df)
+
+        self._checkDataFrameContiguity(years)
+        self._checkAdjustmentsDict(years, adjustmentsDict)
 
         for element in df.columns:
-            df[element] = df[element] * (1 + adjustmentsDict[element] / 100)
+            year = self._extractYearFromStr(element)
+
+            if year in adjustmentsDict:
+                df[element] = df[element] * (1 + adjustmentsDict[year] / 100)
         
         return df
     
@@ -387,7 +450,13 @@ class Adjustments():
         if not re.match("\d+(\.\d+)?[DHTS]", frequency):
             raise ValueError("Frequency '" + frequency + "' not valid. It should be an integer followed by a unit ('D': daily, 'H': hourly, 'T': minutely, 'S': secondly). E.g. \"2T\" == and entry for every 2 minutes.")
 
-    def _getFreqNormalized(self, frequency: str) -> str:
+    def _getFreqNormalized(self, dfIndex) -> str:
+        frequency = pd.infer_freq(dfIndex)
+        if not frequency:
+            possibleFreqs: Set = set(np.diff(dfIndex))
+            for freq in possibleFreqs:
+                if freq > 0: frequency = pd.tseries.frequencies.to_offset(pd.Timedelta(freq)).freqstr
+
         reSult = re.match("([DHTS])", frequency)
         if reSult:
             return "1" + str(reSult.group(1))
@@ -395,7 +464,7 @@ class Adjustments():
         return frequency
 
     def _checkCoarserDFResolution(self, df: pd.DataFrame, frequency: str):
-        dfFreq: str = self._getFreqNormalized(pd.infer_freq(df.index))
+        dfFreq: str = self._getFreqNormalized(df.index)
         
         dfDelta: pd.Timedelta = pd.Timedelta(dfFreq)
         freqDelta: pd.Timedelta = pd.Timedelta(frequency)
@@ -434,7 +503,7 @@ class Adjustments():
             raise ValueError("Interpolation method '" + method + "' not implemented. Please choose some: " + ', '.join(acceptedInterpolationMethods) + ".")
         
     def _checkFinerDFResolution(self, df: pd.DataFrame, frequency: str):
-        dfFreq: str = self._getFreqNormalized(pd.infer_freq(df.index))
+        dfFreq: str = self._getFreqNormalized(df.index)
         
         dfDelta: pd.Timedelta = pd.Timedelta(dfFreq)
         freqDelta: pd.Timedelta = pd.Timedelta(frequency)
