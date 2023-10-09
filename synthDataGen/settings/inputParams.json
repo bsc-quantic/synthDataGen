@@ -1,7 +1,7 @@
 {
     "loadDataParams": {
         "dataSourceOptions": ["ESIOS", "localDF"],
-        "dataSource": "ESIOS",
+        "dataSource": "localDF",
 
         "ESIOS_params": {
             "keysFileDir": "./synthDataGen/settings/",
