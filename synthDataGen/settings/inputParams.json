@@ -19,11 +19,5 @@
 
         "datetimeColumnName": "datetime",
         "datetimeFormat": "%Y-%m-%dT%H:%M:%S"
-    },
-
-    "sourceFilters": {
-        "initialYear": 2007,
-        "hoursAhead": 10,
-        "include29February": false
     }
 }
