@@ -300,7 +300,7 @@ class Adjustments():
     def __init__(self, dataDict: Dict):
         return None
 
-    def _extractYearFromStr(self, literal: str | int) -> int:
+    def _extractYearFromStr(self, literal) -> int:
         reSult = re.match("^[a-zA-Z]*(\d{4})$", str(literal))
 
         if reSult:
