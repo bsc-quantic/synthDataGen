@@ -14,14 +14,6 @@ class Controller:
 
     def __init__(self):
         return None
-
-    @property
-    def initialYear(self):
-        return self._initialYear
-    
-    @property
-    def hoursAhead(self):
-        return self._hoursAhead
     
     @property
     def include29February(self):
@@ -38,14 +30,6 @@ class Controller:
     @property
     def inputJSON(self):
         return self._inputJSON
-
-    @initialYear.setter
-    def initialYear(self, new_initialYear: str):
-        self._initialYear = new_initialYear
-
-    @hoursAhead.setter
-    def hoursAhead(self, new_hoursAhead: str):
-        self._hoursAhead = new_hoursAhead
 
     @include29February.setter
     def include29February(self, new_include29February: str):
@@ -65,26 +49,20 @@ class Controller:
 
     def _parseMainData(self, data):
         # Basic parameters
-        self._initialYear: int = data["loadDataParams"]["sourceFilters"]["initialYear"] 
-        self._hoursAhead: int = data["loadDataParams"]["sourceFilters"]["hoursAhead"]
-        self._include29February: bool = data["loadDataParams"]["sourceFilters"]["include29February"]
-        
-        self._dataSourceOptions: List[str] = data["loadDataParams"]["dataSourceOptions"]
-        self._dataSource: str = data["loadDataParams"]["dataSource"]
+        self._dataSourceOptions: List[str] = data["dataSourceOptions"]
+        self._dataSource: str = data["dataSource"]
 
-    def loadMainParams(self, paramsFileName: str, directory: str = os.getcwd()):
+    def loadMainParams(self, paramsFileName: str):
         """Loads the main parameters from the specified input JSON.
         May be useful to reload the input parameters file at any time during the execution. The corresponding controller instances should be created again, passing to them the inputJSON member (which has been reloaded).
 
-        :param str paramsFileName: the name of the JSON file containing the dictionary.
-        :param str directory: the directory in which the paramsFileName is located.
+        :param str paramsFileName: the name of the JSON file containing the dictionary (absolute or relative path)
         """
 
-        self._paramsFileName = paramsFileName
-        self._paramsFileDirectory = directory
+        if not os.path.isfile(paramsFileName):
+            raise Exception("File '" + paramsFileName + "' does not exist.")
 
-        self._inputParamsFile = os.path.join(directory, paramsFileName)
-        with open(self._inputParamsFile, 'r') as jsonFile:
+        with open(paramsFileName, 'r') as jsonFile:
             self._inputJSON = json.load(jsonFile)
 
             self._parseMainData(self._inputJSON)
@@ -98,8 +76,8 @@ class Controller:
                 self._dataInstance = self.LocalDFController()
                 self._dataInstance.loadData(self._inputJSON)
 
-    def __filter29February(self, df: pd.DataFrame) -> pd.DataFrame:
-        if not self.include29February:
+    def __filter29February(self, df: pd.DataFrame, include29February: bool) -> pd.DataFrame:
+        if not include29February:
             if self._dataSource == "localDF":
                 df = df.rename({str(entry):"2024" + "-" + str(entry) for entry in df.index})      # This mental retardation is for pandas to not check the February 29th when parsing the index to datetime
                 df.index = pd.to_datetime(df.index)
@@ -111,22 +89,20 @@ class Controller:
 
             return df
 
-    def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
+    def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None, include29February = False) -> pd.DataFrame:
         """Get the data from source considering the specified parameters. 
         If some parameter is not provided, the one from the input file is used by default.
 
         :param int initialYear: first year considered for the request.
         :param datetime initDatetime: the initial (MM-DD-hh-mm) considered for the request.
         :param int hoursAhead: hours from 'initDatetime' on that we want to consider for the request.
+        :param bool include29February: indicates whether or not to include the February 29 in the returned DataFrame.
         :returns pandas.DataFrame:
         """
 
-        if not initialYear: initialYear = self.initialYear
-        if not hoursAhead: hoursAhead = self.hoursAhead
-
         df: pd.DataFrame = self._dataInstance.getDataFromSource(initialYear, initDatetime, hoursAhead)
 
-        df = self.__filter29February(df)
+        df = self.__filter29February(df, include29February)
 
         return df
 
@@ -138,16 +114,16 @@ class Controller:
             return None
 
         def loadData(self, data: Dict):
-            self._keysFileDir: str = data["loadDataParams"]["ESIOS_params"]["keysFileDir"]
-            self._keysFileName: str = data["loadDataParams"]["ESIOS_params"]["keysFileName"]
+            self._keysFileDir: str = data["ESIOS_params"]["keysFileDir"]
+            self._keysFileName: str = data["ESIOS_params"]["keysFileName"]
 
             keysFile = os.path.join(self.keysFileDir, self.keysFileName)
             with open(keysFile, 'r') as keysJSONFile:
                 esiosKeyData = json.load(keysJSONFile)
                 self.__esiosKey = esiosKeyData["ESIOS_KEY"]    # We'll let this private
 
-            self._indicador: List[int] = data["loadDataParams"]["ESIOS_params"]["indicador"]
-            self._time_trunc: str = data["loadDataParams"]["ESIOS_params"]["time_trunc"]
+            self._indicador: List[int] = data["ESIOS_params"]["indicador"]
+            self._time_trunc: str = data["ESIOS_params"]["time_trunc"]
 
         @property
         def keysFileDir(self):
@@ -201,9 +177,6 @@ class Controller:
             return df
 
         def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
-            if not initialYear: initialYear = self.initialYear
-            if not hoursAhead: hoursAhead = self.hoursAhead
-
             esiosInstance = self.bibliotecaEsios.BajadaDatosESIOS(self.__esiosKey)
 
             df: pd.DataFrame = self._getDataForFirstYear(initialYear, initDatetime, hoursAhead, esiosInstance)
@@ -220,16 +193,16 @@ class Controller:
             return None
 
         def loadData(self, data: Dict):
-            self._dataFrameDir: str = data["loadDataParams"]["localDF_params"]["dataFrameDir"]
-            self._dataframeFileName: str = data["loadDataParams"]["localDF_params"]["dataframeFileName"]
+            self._dataFrameDir: str = data["localDF_params"]["dataFrameDir"]
+            self._dataframeFileName: str = data["localDF_params"]["dataframeFileName"]
 
             self._dataFrameFile: str = os.path.join(self.dataFrameDir, self.dataframeFileName)
 
-            self._columnToAnalyze: str = data["loadDataParams"]["localDF_params"]["columnToAnalyze"]
-            self._skipFirstColumn: bool = data["loadDataParams"]["localDF_params"]["skipFirstColumn"]
+            self._columnToAnalyze: str = data["localDF_params"]["columnToAnalyze"]
+            self._skipFirstColumn: bool = data["localDF_params"]["skipFirstColumn"]
 
-            self._datetimeColumnName: str = data["loadDataParams"]["localDF_params"]["datetimeColumnName"]
-            self._datetimeFormat: str = data["loadDataParams"]["localDF_params"]["datetimeFormat"]
+            self._datetimeColumnName: str = data["localDF_params"]["datetimeColumnName"]
+            self._datetimeFormat: str = data["localDF_params"]["datetimeFormat"]
 
         @property
         def dataFrameDir(self):
@@ -311,9 +284,6 @@ class Controller:
             return resultDF
 
         def getDataFromSource(self, initialYear: int = None, initDatetime: datetime = datetime.now(), hoursAhead: int = None) -> pd.DataFrame:
-            if not initialYear: initialYear = self.initialYear
-            if not hoursAhead: hoursAhead = self.hoursAhead
-
             df = pd.read_csv(self.dataFrameFile)
 
             if self.skipFirstColumn:
@@ -328,64 +298,7 @@ class Adjustments():
     from synthDataGen.common import bibliotecaGeneral
 
     def __init__(self, dataDict: Dict):
-        # Adjustment parameters
-        self._adjustmentByYear: Dict[int, int] = {int(key): value for key, value in dataDict["adjustmentByYear"].items()}
-
-        # Up/down sampling parameters
-        self._upsampling_frequency: str = dataDict["upsampling_params"]["frequency"]
-        self._upsampling_method: str = dataDict["upsampling_params"]["method"]
-        self._upsampling_splineOrder: int = dataDict["upsampling_params"]["splineOrder"]
-
-        self._downsampling_frequency: str = dataDict["downsampling_params"]["frequency"]
-        self._downsampling_aggregationFunc: str = dataDict["downsampling_params"]["aggregationFunc"]
-
-    @property
-    def adjustmentByYear(self):
-        return self._adjustmentByYear
-
-    @property
-    def upsampling_frequency(self):
-        return self._upsampling_frequency
-    
-    @property
-    def upsampling_method(self):
-        return self._upsampling_method
-    
-    @property
-    def upsampling_splineOrder(self):
-        return self._upsampling_splineOrder
-    
-    @property
-    def downsampling_frequency(self):
-        return self._downsampling_frequency
-    
-    @property
-    def downsampling_aggregationFunc(self):
-        return self._downsampling_aggregationFunc
-
-    @adjustmentByYear.setter
-    def adjustmentByYear(self, new_adjustmentByYear: str):
-        self._adjustmentByYear = new_adjustmentByYear
-
-    @upsampling_frequency.setter
-    def upsampling_frequency(self, new_upsampling_frequency: str):
-        self._upsampling_frequency = new_upsampling_frequency
-    
-    @upsampling_method.setter
-    def upsampling_method(self, new_upsampling_method: str):
-        self._upsampling_method = new_upsampling_method
-
-    @upsampling_splineOrder.setter
-    def upsampling_splineOrder(self, new_upsampling_splineOrder: str):
-        self._upsampling_splineOrder = new_upsampling_splineOrder
-
-    @downsampling_frequency.setter
-    def downsampling_frequency(self, new_downsampling_frequency: str):
-        self._downsampling_frequency = new_downsampling_frequency
-
-    @downsampling_aggregationFunc.setter
-    def downsampling_aggregationFunc(self, new_downsampling_aggregationFunc: str):
-        self._downsampling_aggregationFunc = new_downsampling_aggregationFunc
+        return None
 
     def _extractYearFromStr(self, literal: str | int) -> int:
         reSult = re.match("^[a-zA-Z]*(\d{4})$", str(literal))
@@ -430,8 +343,6 @@ class Adjustments():
         :param dict adjustmentsDict: dictionary of percentages of adjustment by year.
         :returns pandas.DataFrame:
         """
-
-        if not adjustmentsDict: adjustmentsDict = self.adjustmentByYear
 
         years: List[str] = self._getListOfYears(df)
 
@@ -484,9 +395,6 @@ class Adjustments():
         :returns pandas.DataFrame:
         """
 
-        if not frequency: frequency = self.upsampling_frequency
-        if not method: method = self.upsampling_method
-
         self._checkFrequencyFormatIsValid(frequency)
         self._checkCoarserDFResolution(df, frequency)
 
@@ -494,7 +402,6 @@ class Adjustments():
         acceptedInterpolationMethods: List[str] = [*polynomialMethods]
 
         if method in polynomialMethods:
-            order: int = self.upsampling_splineOrder
             if "order" in kwargs:
                 order = kwargs["order"]
 
@@ -522,14 +429,8 @@ class Adjustments():
         :returns pandas.DataFrame:
         """
 
-        if not frequency: frequency = self.downsampling_frequency
-        if not aggregationFunc: aggregationFunc = self.downsampling_aggregationFunc
-
         self._checkFrequencyFormatIsValid(frequency)
         self._checkFinerDFResolution(df, frequency)
-
-        if not aggregationFunc: aggregationFunc = self.downsampling_aggreationFunc
-        if not frequency: frequency = self.downsampling_frequency
 
         return df.resample(frequency).agg(aggregationFunc)
     
@@ -538,24 +439,7 @@ class Sampling:
     _availProbDistibutions: List = ["'truncnorm'"]
 
     def __init__(self, dataDict: Dict):
-        self._numberOfSamples: int = dataDict["sampling"]["numberOfSamples"]
-        self._probDistribution: str = dataDict["sampling"]["probDistribution"]
-    
-    @property
-    def numberOfSamples(self):
-        return self._numberOfSamples
-
-    @property
-    def probDistribution(self):
-        return self._probDistribution
-
-    @numberOfSamples.setter
-    def numberOfSamples(self, new_numberOfSamples: str):
-        self._numberOfSamples = new_numberOfSamples
-
-    @probDistribution.setter
-    def probDistribution(self, new_probDistribution: str):
-        self._probDistribution = new_probDistribution
+        return None
 
     def _getMeanAndStdForAxis(self, df: pd.DataFrame, axis: int) -> Tuple[List, List]:
         means: pd.Series = df.mean(axis = axis)

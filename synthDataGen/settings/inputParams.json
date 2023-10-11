@@ -1,66 +1,29 @@
 {
-    "loadDataParams": {
-        "dataSourceOptions": ["ESIOS", "localDF"],
-        "dataSource": "localDF",
+    "dataSourceOptions": ["ESIOS", "localDF"],
+    "dataSource": "localDF",
 
-        "ESIOS_params": {
-            "keysFileDir": "./synthDataGen/settings/",
-            "keysFileName": "ficheroDeClaves.json",
+    "ESIOS_params": {
+        "keysFileDir": "./synthDataGen/settings/",
+        "keysFileName": "ficheroDeClaves.json",
 
-            "indicador": 10211,
-            "time_trunc": "hours"
-        },
-
-        "localDF_params": {
-            "dataFrameDir": "./synthDataGen/tests/resources/",
-            "dataframeFileName": "Puertollano_Horario_2015-07-01 to 2022-12-31.csv",
-
-            "columnToAnalyze": "windspeed",
-            "skipFirstColumn": true,
-
-            "datetimeColumnName": "datetime",
-            "datetimeFormat": "%Y-%m-%dT%H:%M:%S"
-        },
-
-        "sourceFilters": {
-            "initialYear": 2007,
-            "hoursAhead": 10,
-            "include29February": false
-        }
-    },
-    
-    "adjustmentByYear": {
-        "2022": 10,
-        "2021": 10,    
-        "2020": 10,    
-        "2019": 10,    
-        "2018": 10,    
-        "2017": 10,    
-        "2016": 10,
-        "2015": 10,    
-        "2014": 10,
-        "2013": 10,    
-        "2012": 10,    
-        "2011": 10,
-        "2010": 10,
-        "2009": 10,
-        "2008": 10,    
-        "2007": 10    
+        "indicador": 10211,
+        "time_trunc": "hours"
     },
 
-    "upsampling_params": {
-        "frequency": "15T",
-        "method": "polynomial",
-        "splineOrder": 2
+    "localDF_params": {
+        "dataFrameDir": "./synthDataGen/tests/resources/",
+        "dataframeFileName": "Puertollano_Horario_2015-07-01 to 2022-12-31.csv",
+
+        "columnToAnalyze": "windspeed",
+        "skipFirstColumn": true,
+
+        "datetimeColumnName": "datetime",
+        "datetimeFormat": "%Y-%m-%dT%H:%M:%S"
     },
 
-    "downsampling_params": {
-        "frequency": "2H",
-        "aggregationFunc": "mean"
-    },
-
-    "sampling": {
-        "numberOfSamples": 5000,
-        "probDistribution": "truncnorm"
+    "sourceFilters": {
+        "initialYear": 2007,
+        "hoursAhead": 10,
+        "include29February": false
     }
 }
