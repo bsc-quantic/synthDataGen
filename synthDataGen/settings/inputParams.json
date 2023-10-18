@@ -1,7 +1,4 @@
 {
-    "dataSourceOptions": ["ESIOS", "localDF"],
-    "dataSource": "localDF",
-
     "ESIOS_params": {
         "keysFileDir": "./synthDataGen/settings/",
         "keysFileName": "ficheroDeClaves.json",
@@ -11,7 +8,7 @@
     },
 
     "localDF_params": {
-        "dataFrameDir": "./synthDataGen/tests/resources/",
+        "dataFrameDir": "./synthDataGen/inputExamples/",
         "dataframeFileName": "Puertollano_Horario_2015-07-01 to 2022-12-31.csv",
 
         "columnToAnalyze": "windspeed",
