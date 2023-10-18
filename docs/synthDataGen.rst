@@ -4,27 +4,49 @@ synthDataGen package
 Submodules
 ----------
 
-synthDataGen.base module
+synthDataGen.controller module
 ------------------------------
 
-.. autoclass:: synthDataGen.base.Controller
+.. autoclass:: synthDataGen.controller.LoaderInterface
 
    Methods
    -------
 
-   .. automethod:: loadMainParams
+   .. automethod:: __init__
    .. automethod:: getDataFromSource
 
-.. autoclass:: synthDataGen.base.Adjustments
+.. autoclass:: synthDataGen.controller.ESIOSLoader
 
    Methods
    -------
 
-   .. automethod:: performAnualAdjustments
+   .. automethod:: __init__
+   .. automethod:: getDataFromSource
+
+.. autoclass:: synthDataGen.controller.LocalDFLoader
+
+   Methods
+   -------
+
+   .. automethod:: __init__
+   .. automethod:: getDataFromSource
+
+.. autoclass:: synthDataGen.adjustments.FactorByYear
+
+   Methods
+   -------
+
+   .. automethod:: run
+
+.. autoclass:: synthDataGen.adjustments.ChangeResolution
+
+   Methods
+   -------
+
    .. automethod:: upsample
    .. automethod:: downsample
 
-.. autoclass:: synthDataGen.base.Sampling
+.. autoclass:: synthDataGen.sampling.Sampling
 
    Methods
    -------

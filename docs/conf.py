@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Synthetic Data Generator for Energy Forecast'
-copyright = '2023, Santiago Fernández Prieto & Germán Navarro'
+copyright = '2023, Santiago Fernández Prieto & Germán Navarro. \nDesarrollado en el marco del Proyecto CUCO (https://www.cuco.tech/ subvencionado por CDTI y con el apoyo del Ministerio de Ciencia e Innovación bajo el Plan de Recuperación, Transformación y Resiliencia.'
 author = 'Santiago Fernández Prieto & Germán Navarro'
 release = '0.1'
 
