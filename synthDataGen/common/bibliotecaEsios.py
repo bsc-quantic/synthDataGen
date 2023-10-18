@@ -102,8 +102,8 @@ class BajadaDatosESIOS:
     def dataframe_lista_de_indicadores_de_esios_por_fechas(self, indicadores,
                                                            fecha_inicio,
                                                            fecha_fin,
-                                                           time_trunc='five_minutes',
-                                                           inlcuye29DeFebrero=' ' ):
+                                                           incluye29DeFebrero,
+                                                           time_trunc='five_minutes'):
         """ Descarga un dataframe por fechas (desde/hasta( en UTC para una lista de indicadores ESIOS
         
         Devuelve un dataframe de pandas, pero ojo: el Dataframe es del tipo DatetimeIndex, (el indice es la serie
@@ -184,7 +184,7 @@ class BajadaDatosESIOS:
         df['datetime_utc'] = np.array( datetime.strptime(a, '%Y-%m-%dT%H:%M:%SZ') for a in df['datetime_utc'])  
         df.index = pd.to_datetime(df.datetime_utc)        
     #  2) Eliminamos el 29 de febrero, en caso de ser así requerido 
-        if inlcuye29DeFebrero.strip() != '':
+        if not incluye29DeFebrero:
             df = df[(df.index.day != 29) & (df.index.month != 2) ]                
         self.__df = df
         return self.__df    
