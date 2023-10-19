@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 
 class LoaderInterface:
 
+    indexName = "datetime"
+
     def __init__(self, paramsFileName: str):
         """Loads the main parameters from the specified input JSON.
 
@@ -130,6 +132,8 @@ class ESIOSLoader(LoaderInterface):
         # Shift the index (row names) to the current date
         df.index = df.index + pd.offsets.DateOffset(years = initDatetime.year - initialYear)
 
+        df.rename_axis(self.indexName, inplace=True)
+
         return df
     
 class LocalDFLoader(LoaderInterface):
@@ -233,6 +237,8 @@ class LocalDFLoader(LoaderInterface):
 
         if len(set(df.index.year)) == 1:
             df.index = df.index + pd.offsets.DateOffset(years = 2023 - df.index.year[1])
+
+        df.rename_axis(self.indexName, inplace=True)
 
         return df
 
