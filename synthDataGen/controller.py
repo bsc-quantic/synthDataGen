@@ -105,10 +105,16 @@ class ESIOSLoader(LoaderInterface):
     def time_trunc(self, new_time_trunc: str):
         self._time_trunc = new_time_trunc
 
+    def _isLeapYear(self, year: int):
+        return ((year % 400 == 0) or (year % 100 != 0) and
+                                     (year % 4 == 0))
+
     def _getDataForYear(self, year: int, initDatetime: datetime, hoursAhead: int, include29February: bool, esios) -> pd.DataFrame:
         initialDate: datetime = datetime(year, 
                                         initDatetime.month, initDatetime.day, initDatetime.hour, initDatetime.minute)
         endDate: datetime = initialDate + timedelta(hours = hoursAhead)
+        if not include29February and self._isLeapYear(year):
+            endDate = endDate + timedelta(hours=24)
 
         return esios.dataframe_lista_de_indicadores_de_esios_por_fechas([self.indicador], 
                                                                         initialDate, endDate, include29February,
@@ -233,7 +239,8 @@ class LocalDFLoader(LoaderInterface):
         df = df.rename({str(entry):"2024" + "-" + str(entry) for entry in df.index})      # This mental retardation is for pandas to not check the February 29th when parsing the index to datetime
         df.index = pd.to_datetime(df.index)
 
-        df = df[~((df.index.month == 2) & (df.index.day == 29))]
+        if not include29February:
+            df = df[~((df.index.month == 2) & (df.index.day == 29))]
 
         if len(set(df.index.year)) == 1:
             df.index = df.index + pd.offsets.DateOffset(years = 2023 - df.index.year[1])
