@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 [tool.setuptools]
-packages = ["synthDataGen"]
+packages = ["synthDataGen", "synthDataGen.common", "synthDataGen.settings"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
