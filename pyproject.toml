@@ -1,0 +1,34 @@
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synthDataGen"
+version = "0.1"
+authors = [
+  { name="Santiago Fernández Prieto", email="mail.santiagofernandezprieto@gmail.com" },
+  { name="German Navarro", email="ge.najim@gmail.com" },
+]
+dynamic = ["dependencies"]
+description = "An app based on pandas and scipy packages to load DataFrame-like tables either from remote or local repositories and generate synthetic samples from it."
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.10.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: System :: Archiving :: Mirroring"
+]
+
+[tool.setuptools]
+packages = ["synthDataGen"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[project.urls]
+"Homepage" = "https://github.com/bsc-quantic/synthDataGen"
+
+[tool.black]
+line-length = 1000
