@@ -1,6 +1,8 @@
 import os
 import json
+import inspect
 
+from importlib.resources import files
 from typing import List
 
 import pandas as pd
@@ -65,10 +67,11 @@ class ESIOSLoader(LoaderInterface):
         self._keysFileDir: str = data["ESIOS_params"]["keysFileDir"]
         self._keysFileName: str = data["ESIOS_params"]["keysFileName"]
 
-        keysFile = os.path.join(self.keysFileDir, self.keysFileName)
-        with open(keysFile, 'r') as keysJSONFile:
-            esiosKeyData = json.load(keysJSONFile)
-            self.__esiosKey = esiosKeyData["ESIOS_KEY"]    # We'll let this private
+        moduleName: str = self._getPackageName()
+        keysFile: str = os.path.join(self.keysFileDir, self.keysFileName)
+        keysJSONFile = files(moduleName).joinpath(keysFile).read_text()
+
+        self.__esiosKey = json.loads(keysJSONFile)["ESIOS_KEY"]
 
         self._indicador: List[int] = data["ESIOS_params"]["indicador"]
         self._time_trunc: str = data["ESIOS_params"]["time_trunc"]
@@ -104,6 +107,14 @@ class ESIOSLoader(LoaderInterface):
     @time_trunc.setter
     def time_trunc(self, new_time_trunc: str):
         self._time_trunc = new_time_trunc
+
+    def _getPackageName(self):
+        if __package__:
+            return __package__
+        elif '__main__' in __name__:
+            return inspect.currentframe().f_globals['__name__'].split('.')[0]
+        else:
+            return __name__.split('.')[0]
 
     def _isLeapYear(self, year: int):
         return ((year % 400 == 0) or (year % 100 != 0) and
