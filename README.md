@@ -53,7 +53,7 @@ df = ChangeResolution.upsample(df, frequency="15T", method="polynomial", order=2
 df = ChangeResolution.downsample(df, frequency="2H", aggregationFunc="mean")
 
 # Samples generation
-from synthDataGen.sampling import Sampling
+from synthDataGen.utils import Sampling
 
 df = Sampling.getSamples(df, 5000, "truncnorm")
 ```
