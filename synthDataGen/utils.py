@@ -1,3 +1,5 @@
+import random
+
 from typing import Dict, List, Tuple
 
 import pandas as pd
@@ -46,3 +48,22 @@ class Sampling:
             return Sampling._getSamples_truncnorm(df, numberOfSamples, means, stds)
         else:
             raise ValueError("Probability distribution '" + probDistribution +"' not available for sampling. Please choose one of the following: " + ', '.join(Sampling._availProbDistibutions))
+        
+
+class ProbDistributions:
+
+    @staticmethod
+    def getUniform(min: int | float, max: int | float, n: int) -> List[int|float]:
+        """ Returns an n-array of floats following a uniform distribution between (min,max) values
+
+        :param int | float min: minimum parameter for the uniform distribution
+        :param int | float max: maximum parameter for the uniform distribution
+        :param int n: number of values to generate
+        :returns List[int|float]
+        """
+        if isinstance(min, int) and isinstance(max, int):
+            return [ random.randint(min, max) for x in range(n) ]
+        elif isinstance(min, float) and isinstance(max, float):
+            return [ random.uniform(min, max) for x in range(n) ]
+        else:
+            raise ValueError("'min' and 'max' arguments must be either both integers or both floats.")
