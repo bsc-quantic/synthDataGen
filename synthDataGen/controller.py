@@ -126,8 +126,8 @@ class ESIOSLoader(LoaderInterface):
         endDate: datetime = initialDate + timedelta(hours = hoursAhead)
 
         if not include29February and self._isLeapYear(year) and \
-           initDatetime.month == 2 and initDatetime.day == 28 and \
-           endDate.day != initialDate.day:
+           initialDate <= datetime(year, 2, 28) <= endDate and \
+           endDate.date() != initialDate.date():
             endDate = endDate + timedelta(hours=24)
 
         return esios.dataframe_lista_de_indicadores_de_esios_por_fechas([self.indicador], 
