@@ -18,6 +18,8 @@ from dateutil import tz
 import requests    # Posiblemente, tengamos que instalar previamente con pip
 import html
 
+from dateutil import parser
+
 
 
 class BajadaDatosESIOS:
@@ -201,8 +203,15 @@ class BajadaDatosESIOS:
           # neoColumna = np.array( datetime.strptime(a, '%Y-%m-%dT%H:%M:%SZ') for a in columna_aux)
           # df['datetime_utc'] = neoColumna
           # que puedes condensarse:
-        df['datetime_utc'] = np.array( datetime.strptime(a, '%Y-%m-%dT%H:%M:%SZ') for a in df['datetime_utc'])  
-        df.index = pd.to_datetime(df.datetime_utc)        
+
+        df["datetime_utc_norm"] = pd.to_datetime(df["datetime_utc"], format='ISO8601')
+        df['datetime_utc'] = np.array([date.replace(microsecond = 0).tz_localize(None) for date in df["datetime_utc_norm"]])
+        # df['datetime_utc'] = np.array( datetime.strptime(a, '%Y-%m-%dT%H:%M:%SZ') for a in df['datetime_utc'])  
+
+        
+        df.index = pd.to_datetime(df.datetime_utc)
+
+        df = df[(df.index >= fecha_inicio) & (df.index <= fecha_fin)]
     #  2) Eliminamos el 29 de febrero, en caso de ser así requerido 
         # if inlcuye29DeFebrero.strip() != '':                        # Old code                  
         #    df = df[(df.index.day != 29) & (df.index.month != 2) ]   # Old code
