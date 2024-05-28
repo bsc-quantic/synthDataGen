@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synthDataGen"
-version = "0.1"
+version = "0.2"
 authors = [
   { name="Santiago Fernández Prieto", email="mail.santiagofernandezprieto@gmail.com" },
-  { name="German Navarro", email="ge.najim@gmail.com" },
+  { name="German Navarro", email="ge.najim@gmail.com" }
 ]
 dynamic = ["dependencies"]
 description = "An app based on pandas and scipy packages to load DataFrame-like tables either from remote or local repositories and generate synthetic samples from it."
