@@ -46,13 +46,6 @@ synthDataGen.controller module
    .. automethod:: upsample
    .. automethod:: downsample
 
-.. autoclass:: synthDataGen.sampling.Sampling
-
-   Methods
-   -------
-   
-   .. automethod:: getSamples
-   
 
 Module contents
 ---------------
