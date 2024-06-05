@@ -19,9 +19,7 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
-
-    environment: CUCO_PROD_ENV
-
+    
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
@@ -38,4 +36,4 @@ jobs:
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
       with:
         user: __token__
-        password: ${{ secrets.CUCO_PYPI_API_TOKEN }}
+        password: ${{ secrets.PYPI_TOKEN }}
