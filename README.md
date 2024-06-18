@@ -60,12 +60,14 @@ df = Sampling.getSamples(df, 5000, "truncnorm")
 
 ## Acknowledgements
 
-© Copyright 2023, Germán Navarro $^\dagger$, Santiago Fernández Prieto $^{\ddagger,1}$, Ricardo Enríquez Miranda $^\ddagger$, Javier Hernanz Zájara $^\ddagger$
+© Copyright 2023, Germán Navarro $^\dagger$, Santiago Fernández Prieto $^{\ddagger,1}$, David Aller Giraldez $^\ddagger$, Ricardo Enríquez Miranda $^{\ddagger,2}$, Javier Hernanz Zájara $^{\ddagger,2}$,
 
 $^\dagger$ Barcelona Supercomputing Center
 \
-$^\ddagger$ Repsol Quantum Advisory Team
+$^\ddagger$ Repsol
 
 $^1$ Repsol-BSC Research Center
+
+$^2$ Repsol Quantum Advisory Team
 
 Developed within the framework of the [project CUCO](https://www.cuco.tech/). Financed by the [CDTI](https://www.cdti.es/en) and with the support of the [Spanish Ministry of Science and Innovation](https://www.ciencia.gob.es/en/) under the [Recovery, Transformation and Resilience Plan (RTRP)](https://www.ciencia.gob.es/en/Estrategias-y-Planes/Plan-de-Recuperacion-Transformacion-y-Resiliencia-PRTR.html).
