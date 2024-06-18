@@ -60,7 +60,7 @@ df = Sampling.getSamples(df, 5000, "truncnorm")
 
 ## Acknowledgements
 
-© Copyright 2023, Germán Navarro $^\dagger$, Santiago Fernández Prieto $^{\ddagger,1}$, David Aller Giraldez $^\ddagger$, Ricardo Enríquez Miranda $^{\ddagger,2}$, Javier Hernanz Zájara $^{\ddagger,2}$,
+© Copyright 2024, Germán Navarro $^\dagger$, Santiago Fernández Prieto $^{\ddagger,1}$, David Aller Giraldez $^\ddagger$, Ricardo Enríquez Miranda $^{\ddagger,2}$, Javier Hernanz Zájara $^{\ddagger,2}$,
 
 $^\dagger$ Barcelona Supercomputing Center
 \
