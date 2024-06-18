@@ -1,6 +1,6 @@
 ## Acknowledgements
 
-© Copyright 2024, Germán Navarro {math}`^\dagger`, Santiago Fernández Prieto {math}`^{\ddagger,1}`, David Aller Giraldez $^\ddagger$, Ricardo Enríquez Miranda {math}`^{\ddagger,2}`, Javier Hernanz Zájara {math}`^{\ddagger,2}`
+© Copyright 2024, Germán Navarro {math}`^\dagger`, Santiago Fernández Prieto {math}`^{\ddagger,1}`, David Aller Giraldez {math}`^\ddagger`, Ricardo Enríquez Miranda {math}`^{\ddagger,2}`, Javier Hernanz Zájara {math}`^{\ddagger,2}`
 
 {math}`^\dagger` Barcelona Supercomputing Center
 \
