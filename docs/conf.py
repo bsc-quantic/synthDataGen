@@ -11,9 +11,9 @@ sys.path.insert(0, os.path.abspath('..'))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'SynthDataGen'
-copyright = '2023, Santiago Fernández Prieto & Germán Navarro'
+copyright = '2024, Repsol-BSC Research Center'
 author = 'Santiago Fernández Prieto & Germán Navarro'
-release = '0.3'
+release = '0.4'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
